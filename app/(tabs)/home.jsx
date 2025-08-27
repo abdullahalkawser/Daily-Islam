@@ -35,11 +35,12 @@ const APP_SECTIONS = [
   { id: 2, title: 'দোয়া', icon: '🤲', color: '#1976D2', route: '/duas' },
   { id: 3, title: 'তাসবিহ', icon: '📿', color: '#7B1FA2', route: '/tasbih' },
   { id: 4, title: 'জাকাত', icon: '💰', color: '#F57C00', route: '/zakat' },
+    { id: 9, title: 'রমজান', icon: '❤️', color: '#C62828', route: '/ramadan' },
   { id: 5, title: 'ঘুমানোর সময়ের আমল', icon: '📚', color: '#5D4037', route: '/kitab' },
-  { id: 6, title: 'সদকা', icon: '❤️', color: '#C62828', route: '/sadaqah' },
+  { id: 6, title: 'সুন্নাহ', icon: '❤️', color: '#C62828', route: '/sunnah' },
   { id: 7, title: 'গোসলের আমল', icon: '💰', color: '#F57C00', route: '/gosol' },
-  { id: 8, title: 'আরবি ভাষা', icon: '📚', color: '#5D4037', route: '/kitab' },
-  { id: 9, title: 'সুন্নাহ', icon: '❤️', color: '#C62828', route: '/sadaqah' },
+  { id: 8, title: 'আরবি ভাষা', icon: '📚', color: '#5D4037', route: '/arbi' },
+
 ];
 
 // New data for the Sunnah section
