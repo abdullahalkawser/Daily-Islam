@@ -122,7 +122,7 @@ const IslamicAppHome = () => {
           <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
         </LinearGradient>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/salah-time')}>
+      <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/amol')}>
         <LinearGradient
           colors={['#03A9F4', '#2196F3']}
           style={styles.quickAccessCard}
@@ -157,7 +157,7 @@ const IslamicAppHome = () => {
 
   const renderSunnahSection = () => (
     <View style={styles.sunnahContainer}>
-      <Text style={styles.sectionTitle}>নবী (সাঃ) এর ৯টি সুন্নাহ</Text>
+      <Text style={styles.sectionTitle}>নবী (সাঃ) এর ৯টি সুন্নাহ 🌙</Text>
       <View style={styles.sunnahGrid}>
         {SUNNAHS.map(sunnah => (
           <View key={sunnah.id} style={[styles.sunnahCard, { backgroundColor: sunnah.color }]}>
