@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, Animated, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, ImageBackground, Animated, TouchableOpacity, SafeAreaView } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const SplashScreen = () => {
-  const navigation = useNavigation();
+  const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const quoteFadeAnim = useRef(new Animated.Value(1)).current; // Quote fade animation
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const quoteFadeAnim = useRef(new Animated.Value(1)).current;
+  const quoteSlideAnim = useRef(new Animated.Value(10)).current;
+  const buttonFadeAnim = useRef(new Animated.Value(0)).current;
 
   const quotes = [
     'আল্লাহ আপনার নামাজ, যাকাত এবং রোজাগুলি কবুল করুন।',
@@ -19,67 +20,90 @@ const SplashScreen = () => {
 
   const [currentQuote, setCurrentQuote] = useState(0);
 
-  // Quote পরিবর্তন প্রতি 3 সেকেন্ডে smooth fade animation
+  // Splash animation (logo + button fade)
+  useEffect(() => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 5, useNativeDriver: true })
+      ]),
+      Animated.timing(buttonFadeAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+    ]).start();
+  }, []);
+
+  // Quote animation every 3 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      Animated.sequence([
+      // Fade out and slide up
+      Animated.parallel([
         Animated.timing(quoteFadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(quoteFadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(quoteSlideAnim, { toValue: -10, duration: 500, useNativeDriver: true })
       ]).start();
-      setCurrentQuote(prev => (prev + 1) % quotes.length);
+
+      // Update quote safely after fade-out
+      setTimeout(() => {
+        setCurrentQuote(prev => (prev + 1) % quotes.length);
+        quoteSlideAnim.setValue(10);
+        // Fade in new quote
+        Animated.parallel([
+          Animated.timing(quoteFadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(quoteSlideAnim, { toValue: 0, duration: 500, useNativeDriver: true })
+        ]).start();
+      }, 500);
     }, 3000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Splash animation
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
-
-  const handleGetStarted = () => {
-    navigation.replace('Home');
-  };
-
   return (
-    <ImageBackground
-      source={{ uri: 'https://m.media-amazon.com/images/I/61m9TN9GTLL.jpg' }}
-      style={styles.background}
-    >
-      {/* Linear Gradient overlay */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.2)']}
-        style={styles.gradient}
+    <SafeAreaView style={{ flex: 1 }}>
+      <ImageBackground
+        source={{ uri: 'https://m.media-amazon.com/images/I/61m9TN9GTLL.jpg' }}
+        style={styles.background}
       >
-        {/* উপরের হাদিস অংশ */}
+        {/* Semi-transparent overlay */}
+        <View style={styles.overlay} />
+
+        {/* Quotes at top */}
         <View style={styles.quoteContainer}>
-          <Animated.Text style={[styles.quote, { opacity: quoteFadeAnim }]}>
+          <Animated.Text
+            style={[styles.quote, { opacity: quoteFadeAnim, transform: [{ translateY: quoteSlideAnim }] }]}
+          >
             {quotes[currentQuote]}
           </Animated.Text>
         </View>
 
-        {/* Center অংশ (Logo + Tagline + Button) */}
-        <Animated.View style={[styles.centerContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoIcon}>☪️</Text>
-            <Text style={styles.tagline}>দৈনিক ইবাদতের সঙ্গী</Text>
-          </View>
+        {/* Logo + Tagline in center */}
+        <Animated.View style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          <Text style={styles.logoIcon}>☪️</Text>
+          <Text style={styles.tagline}>দৈনিক ইবাদতের সঙ্গী</Text>
+        </Animated.View>
 
-          <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
+        {/* Button at bottom */}
+        <Animated.View style={[styles.buttonWrapper, { opacity: buttonFadeAnim }]}>
+          <TouchableOpacity
+            style={styles.getStartedButton}
+            onPress={() => router.replace('/(tabs)/home')}
+          >
             <Text style={styles.buttonText}>শুরু করুন</Text>
           </TouchableOpacity>
         </Animated.View>
-      </LinearGradient>
-    </ImageBackground>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  background: { flex: 1, resizeMode: 'cover' },
-  gradient: { flex: 1 },
+  background: {
+    flex: 1,
+    resizeMode: 'cover',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
   quoteContainer: {
     marginTop: 60,
     alignItems: 'center',
@@ -90,36 +114,49 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     lineHeight: 28,
-    textShadowColor: 'rgba(0,0,0,0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 5,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
+    textShadowColor: 'rgba(0,0,0,0.85)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'center',
   },
-  logoIcon: { fontSize: 80, color: 'white', marginBottom: 5 },
+  logoIcon: {
+    fontSize: 70,
+    marginBottom: 10,
+  },
   tagline: {
-    fontSize: 20,
+    fontSize: 24,
     color: 'white',
-    fontStyle: 'italic',
-    textShadowColor: 'rgba(0,0,0,0.75)',
-    textShadowOffset: { width: -1, height: 1 },
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 5,
   },
-  getStartedButton: {
-    backgroundColor: '#4c669f',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
+  buttonWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 30,
   },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  getStartedButton: {
+    backgroundColor: '#6a11cb',
+    paddingVertical: 15,
+    borderRadius: 30,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
 });
 
 export default SplashScreen;

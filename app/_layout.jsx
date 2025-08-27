@@ -7,19 +7,33 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
+
+  // Load custom font
+  const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  if (!loaded) return null; // could show a loader here
+  // Show nothing while font is loading (could add splash/loader here)
+  if (!fontsLoaded) return null;
+
+  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={theme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
+<Stack.Screen name="hadis/index" options={{ headerShown: false }} />
+
+        <Stack.Screen name="duas/index" options={{ headerShown: false }} />
+        <Stack.Screen name="tasbih/index" options={{ headerShown: false }} />
+        <Stack.Screen name="zakat/index" options={{ headerShown: false }} />
+        <Stack.Screen name="kitab/index" options={{ headerShown: false }} />
+        <Stack.Screen name="sadaqah/index" options={{ headerShown: false }} />
+
+        <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
       </Stack>
+
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
