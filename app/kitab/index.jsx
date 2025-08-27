@@ -1,9 +1,10 @@
 // app/hadis/index.js
-import React from "react";
 
-import DuasScreen from "../../components/dua";
+
+import SleepPracticesScreen from "../../components/slepp";
+
 
 
 export default function Dua() {
-  return <DuasScreen />;
+  return <SleepPracticesScreen />;
 }

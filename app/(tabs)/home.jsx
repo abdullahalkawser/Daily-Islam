@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -32,23 +31,40 @@ const DAILY_TASKS_DEFAULT = [
 ];
 
 const APP_SECTIONS = [
-  { id: 1, title: 'Hadith',  icon: '📖', color: '#2E7D32', route: '/hadis'  },
-  { id: 2, title: 'Duas',   icon: '🤲', color: '#1976D2', route: '/duas'   },
-  { id: 3, title: 'Tasbih', icon: '📿', color: '#7B1FA2', route: '/tasbih' },
-  { id: 4, title: 'Zakat',  icon: '💰', color: '#F57C00', route: '/zakat'  },
-  { id: 5, title: 'Kitab',  icon: '📚', color: '#5D4037', route: '/kitab'  },
-  { id: 6, title: 'Sadaqah',icon: '❤️', color: '#C62828', route: '/sadaqah'},
+  { id: 1, title: 'হাদিস', icon: '📖', color: '#2E7D32', route: '/hadis' },
+  { id: 2, title: 'দোয়া', icon: '🤲', color: '#1976D2', route: '/duas' },
+  { id: 3, title: 'তাসবিহ', icon: '📿', color: '#7B1FA2', route: '/tasbih' },
+  { id: 4, title: 'জাকাত', icon: '💰', color: '#F57C00', route: '/zakat' },
+  { id: 5, title: 'ঘুমানোর সময়ের আমল', icon: '📚', color: '#5D4037', route: '/kitab' },
+  { id: 6, title: 'সদকা', icon: '❤️', color: '#C62828', route: '/sadaqah' },
+  { id: 7, title: 'গোসলের আমল', icon: '💰', color: '#F57C00', route: '/gosol' },
+  { id: 8, title: 'আরবি ভাষা', icon: '📚', color: '#5D4037', route: '/kitab' },
+  { id: 9, title: 'সুন্নাহ', icon: '❤️', color: '#C62828', route: '/sadaqah' },
 ];
+
+// New data for the Sunnah section
+const SUNNAHS = [
+  { id: 1, title: 'মেসওয়াক', icon: '🌿', color: '#4CAF50' },
+  { id: 2, title: 'ডান দিক থেকে শুরু', icon: '➡️', color: '#2196F3' },
+  { id: 3, title: 'খাবার আগে ও পরে হাত ধোয়া', icon: '💧', color: '#9C27B0' },
+  { id: 4, title: 'খাবার সময় তিন আঙুল ব্যবহার', icon: '✋', color: '#FF9800' },
+  { id: 5, title: 'শুয়ে ডান কাত হয়ে ঘুমানো', icon: '🛌', color: '#5D4037' },
+  { id: 6, title: 'জোরে সালাম দেওয়া', icon: '🗣️', color: '#E91E63' },
+  { id: 7, title: 'হাসিমুখে কথা বলা', icon: '😊', color: '#00BCD4' },
+  { id: 8, title: 'পোশাক পরিধানে সতর্কতা', icon: '👕', color: '#607D8B' },
+  { id: 9, title: 'রোগীর সেবা করা', icon: '🏥', color: '#8BC34A' },
+];
+
 
 const IslamicAppHome = () => {
   const router = useRouter();
 
 
-const handleSectionPress = (section) => {
-  if (section.route) {
-    router.push(section.route);
+  const handleSectionPress = (section) => {
+    if (section.route) {
+      router.push(section.route);
+    }
   }
-}
 
   const [currentHadithIndex, setCurrentHadithIndex] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(new Set());
@@ -71,11 +87,6 @@ const handleSectionPress = (section) => {
     });
   };
 
-  const addTask = () => {
-    if (newTask.trim() === '') return;
-    setTasks(prev => [...prev, { id: prev.length + 1, title: newTask, description: '' }]);
-    setNewTask('');
-  };
 
   const renderHadithSlider = () => (
     <View style={styles.hadithContainer}>
@@ -108,7 +119,7 @@ const handleSectionPress = (section) => {
         >
           <Text style={styles.quickAccessIcon}>🌙</Text>
           <Text style={styles.quickAccessTitle}>সকাল এবং সন্ধ্যার</Text>
-          <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
+          <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
         </LinearGradient>
       </TouchableOpacity>
       <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/salah-time')}>
@@ -120,12 +131,7 @@ const handleSectionPress = (section) => {
         >
           <Text style={styles.quickAccessIcon}>⏰</Text>
           <Text style={styles.quickAccessTitle}>আজকের দিনের </Text>
-          <Text style={styles.quickAccessSubtitle}>আমল ও দোয়া</Text>
-
-
-
-
-
+          <Text style={styles.quickAccessSubtitle}>আমল ও দোয়া</Text>
         </LinearGradient>
       </TouchableOpacity>
     </View>
@@ -133,17 +139,31 @@ const handleSectionPress = (section) => {
 
   const renderAppSections = () => (
     <View style={styles.sectionsContainer}>
-      <Text style={styles.sectionTitle}>Explore</Text>
+      <Text style={styles.sectionTitle}>অন্যান্য</Text>
       <View style={styles.sectionsGrid}>
         {APP_SECTIONS.map(section => (
           <TouchableOpacity
             key={section.id}
             style={[styles.sectionCard, { backgroundColor: section.color }]}
-        onPress={() => handleSectionPress(section)}
+            onPress={() => handleSectionPress(section)}
           >
             <Text style={styles.sectionIcon}>{section.icon}</Text>
             <Text style={styles.sectionText}>{section.title}</Text>
           </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderSunnahSection = () => (
+    <View style={styles.sunnahContainer}>
+      <Text style={styles.sectionTitle}>নবী (সাঃ) এর ৯টি সুন্নাহ</Text>
+      <View style={styles.sunnahGrid}>
+        {SUNNAHS.map(sunnah => (
+          <View key={sunnah.id} style={[styles.sunnahCard, { backgroundColor: sunnah.color }]}>
+            <Text style={styles.sunnahIcon}>{sunnah.icon}</Text>
+            <Text style={styles.sunnahText}>{sunnah.title}</Text>
+          </View>
         ))}
       </View>
     </View>
@@ -162,10 +182,9 @@ const handleSectionPress = (section) => {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderHadithSlider()}
-        
         {renderQuickAccess()}
-        
         {renderAppSections()}
+        {renderSunnahSection()}
       </ScrollView>
     </View>
   );
@@ -238,6 +257,12 @@ const styles = StyleSheet.create({
   sectionCard: { width: '30%', aspectRatio: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   sectionIcon: { fontSize: 28, marginBottom: 8 },
   sectionText: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' },
+
+  sunnahContainer: { marginTop: 10 },
+  sunnahGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  sunnahCard: { width: '30%', aspectRatio: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  sunnahIcon: { fontSize: 28, marginBottom: 8 },
+  sunnahText: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' },
 
   addTaskContainer: { flexDirection: 'row', marginBottom: 15, alignItems: 'center' },
   input: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 8, marginRight: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
