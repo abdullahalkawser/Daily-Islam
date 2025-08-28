@@ -111,7 +111,7 @@ const IslamicAppHome = () => {
 
   const renderQuickAccess = () => (
     <View style={styles.quickAccessContainer}>
-      <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/ramadan')}>
+      <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/amol')}>
         <LinearGradient
           colors={['#4CAF50', '#8BC34A']}
           style={styles.quickAccessCard}
@@ -123,7 +123,7 @@ const IslamicAppHome = () => {
           <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
         </LinearGradient>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/amol')}>
+      <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/dailyplan')}>
         <LinearGradient
           colors={['#03A9F4', '#2196F3']}
           style={styles.quickAccessCard}

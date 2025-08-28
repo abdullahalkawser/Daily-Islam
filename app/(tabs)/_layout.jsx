@@ -62,9 +62,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="completeAmol"
+        name="aboutapp"
         options={{
-          title: 'Amol Tracker',
+          title: 'About App',
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="check-circle-outline" size={28} color={color} />
           ),
