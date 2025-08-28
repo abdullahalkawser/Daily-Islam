@@ -1,8 +1,8 @@
-// // app/hadis/index.js
+// app/hadis/index.js
 
-// import GhuslRoutinePage from "../../components/Amolpage";
+import GhuslRoutinePage from "../../components/Amolpage";
 
 
-// export default function Dua() {
-//   return <GhuslRoutinePage />;
-// }
+export default function Dua() {
+  return <GhuslRoutinePage />;
+}
