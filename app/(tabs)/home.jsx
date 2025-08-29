@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import PrayerTimesScreen from "../../components/PrayerTimesScreen";
 
 const { width } = Dimensions.get('window');
 
@@ -35,15 +36,14 @@ const APP_SECTIONS = [
   { id: 2, title: 'দোয়া', icon: '🤲', color: '#1976D2', route: '/duas' },
   { id: 3, title: 'তাসবিহ', icon: '📿', color: '#7B1FA2', route: '/tasbih' },
   { id: 4, title: 'জাকাত', icon: '💰', color: '#F57C00', route: '/zakat' },
-    { id: 9, title: 'রমজান', icon: '❤️', color: '#C62828', route: '/ramadan' },
   { id: 5, title: 'ঘুমানোর সময়ের আমল', icon: '📚', color: '#5D4037', route: '/kitab' },
   { id: 6, title: 'সুন্নাহ', icon: '❤️', color: '#C62828', route: '/sunnah' },
   { id: 7, title: 'গোসলের আমল', icon: '💰', color: '#F57C00', route: '/gosol' },
   { id: 8, title: 'আরবি ভাষা', icon: '📚', color: '#5D4037', route: '/arbi' },
-
+  { id: 9, title: 'রমজান', icon: '❤️', color: '#C62828', route: '/ramadan' },
 ];
 
-// New data for the Sunnah section
+// Sunnah Section
 const SUNNAHS = [
   { id: 1, title: 'মেসওয়াক', icon: '🌿', color: '#4CAF50' },
   { id: 2, title: 'ডান দিক থেকে শুরু', icon: '➡️', color: '#2196F3' },
@@ -56,21 +56,12 @@ const SUNNAHS = [
   { id: 9, title: 'রোগীর সেবা করা', icon: '🏥', color: '#8BC34A' },
 ];
 
-
 const IslamicAppHome = () => {
   const router = useRouter();
-
-
-  const handleSectionPress = (section) => {
-    if (section.route) {
-      router.push(section.route);
-    }
-  }
 
   const [currentHadithIndex, setCurrentHadithIndex] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(new Set());
   const [tasks, setTasks] = useState(DAILY_TASKS_DEFAULT);
-  const [newTask, setNewTask] = useState('');
   const [userName] = useState('আব্দুল্লাহ আল কাওসার');
 
   useEffect(() => {
@@ -88,6 +79,9 @@ const IslamicAppHome = () => {
     });
   };
 
+  const handleSectionPress = (section) => {
+    if (section.route) router.push(section.route);
+  };
 
   const renderHadithSlider = () => (
     <View style={styles.hadithContainer}>
@@ -112,26 +106,16 @@ const IslamicAppHome = () => {
   const renderQuickAccess = () => (
     <View style={styles.quickAccessContainer}>
       <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/amol')}>
-        <LinearGradient
-          colors={['#4CAF50', '#8BC34A']}
-          style={styles.quickAccessCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+        <LinearGradient colors={['#4CAF50', '#8BC34A']} style={styles.quickAccessCard}>
           <Text style={styles.quickAccessIcon}>🌙</Text>
           <Text style={styles.quickAccessTitle}>সকাল এবং সন্ধ্যার</Text>
           <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
         </LinearGradient>
       </TouchableOpacity>
       <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/dailyplan')}>
-        <LinearGradient
-          colors={['#03A9F4', '#2196F3']}
-          style={styles.quickAccessCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+        <LinearGradient colors={['#03A9F4', '#2196F3']} style={styles.quickAccessCard}>
           <Text style={styles.quickAccessIcon}>⏰</Text>
-          <Text style={styles.quickAccessTitle}>আজকের দিনের </Text>
+          <Text style={styles.quickAccessTitle}>আজকের দিনের</Text>
           <Text style={styles.quickAccessSubtitle}>আমল ও দোয়া</Text>
         </LinearGradient>
       </TouchableOpacity>
@@ -161,14 +145,41 @@ const IslamicAppHome = () => {
       <Text style={styles.sectionTitle}>নবী (সাঃ) এর ৯টি সুন্নাহ 🌙</Text>
       <View style={styles.sunnahGrid}>
         {SUNNAHS.map(sunnah => (
-          <View key={sunnah.id} style={[styles.sunnahCard, { backgroundColor: sunnah.color }]}>
+          <TouchableOpacity
+            key={sunnah.id}
+            style={[styles.sunnahCard, { backgroundColor: sunnah.color }]}
+            onPress={() => alert(`${sunnah.title}`)}
+          >
             <Text style={styles.sunnahIcon}>{sunnah.icon}</Text>
             <Text style={styles.sunnahText}>{sunnah.title}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
   );
+
+const Preyer = () => {
+  return (
+    <View style={styles.prayerContainer}>
+      <Text style={styles.sectionTitle}>নামাজের সময় 🕌</Text>
+      <LinearGradient
+        colors={['#fefffeff', '#eeeeeeff']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.prayerCard}
+      >
+        <PrayerTimesScreen
+          latitude={23.8103}
+          longitude={90.4125}
+          calculation="MuslimWorldLeague"
+          madhab="Shafi"
+          use12h={true}
+        />
+      </LinearGradient>
+    </View>
+  );
+};
+
 
   return (
     <View style={styles.container}>
@@ -181,7 +192,10 @@ const IslamicAppHome = () => {
         </Text>
       </View>
 
+    
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {Preyer()}
         {renderHadithSlider()}
         {renderQuickAccess()}
         {renderAppSections()}
@@ -216,60 +230,35 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E0E0E0', marginHorizontal: 2 },
   activeDot: { backgroundColor: '#FFFFFF' },
 
-  quickAccessContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  quickAccessCardWrapper: {
-    width: '48%',
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  quickAccessCard: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 120,
-  },
-  quickAccessIcon: {
-    fontSize: 30,
-    marginBottom: 8,
-  },
-  quickAccessTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  quickAccessSubtitle: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    opacity: 0.8,
-  },
+  quickAccessContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
+  quickAccessCardWrapper: { width: '48%', borderRadius: 15, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },
+  quickAccessCard: { padding: 20, alignItems: 'center', justifyContent: 'center', height: 120 },
+  quickAccessIcon: { fontSize: 30, marginBottom: 8 },
+  quickAccessTitle: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 4 },
+  quickAccessSubtitle: { fontSize: 12, color: '#FFFFFF', opacity: 0.8 },
 
   sectionsContainer: { marginTop: 10 },
   sectionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  sectionCard: { width: '30%', aspectRatio: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  sectionCard: { width: (width - 60) / 3, aspectRatio: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   sectionIcon: { fontSize: 28, marginBottom: 8 },
   sectionText: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' },
 
   sunnahContainer: { marginTop: 10 },
   sunnahGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  sunnahCard: { width: '30%', aspectRatio: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  sunnahCard: { width: (width - 60) / 3, aspectRatio: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   sunnahIcon: { fontSize: 28, marginBottom: 8 },
   sunnahText: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' },
+  prayerContainer: { marginTop: 20 },
+prayerCard: {
+  borderRadius: 15,
+  padding: 15,
+  shadowColor: '#000',
+  
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 5,
+},
 
-  addTaskContainer: { flexDirection: 'row', marginBottom: 15, alignItems: 'center' },
-  input: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 8, marginRight: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
-  addButton: { backgroundColor: '#2E7D32', borderRadius: 12, padding: 12, alignItems: 'center', justifyContent: 'center' },
-  addButtonText: { color: '#FFFFFF', fontSize: 20, fontWeight: 'bold' },
-  checkMark: { fontSize: 16, color: '#FFFFFF', fontWeight: 'bold' },
 });
 
 export default IslamicAppHome;
