@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import PrayerTimesScreen from "../../components/PrayerTimesScreen";
+
+import PrayerTimesComponent  from "../../components/PrayerTimesScreen"
 import PrayerPage  from "../../components/NamazTime";
 
 const { width } = Dimensions.get('window');
@@ -147,7 +148,7 @@ const IslamicAppHome = () => {
     return (
       <View style={styles.prayerContainer}>
 
-        <PrayerTimesScreen
+        <PrayerTimesComponent
           latitude={23.8103}
           longitude={90.4125}
           calculation="MuslimWorldLeague"
@@ -182,7 +183,7 @@ const IslamicAppHome = () => {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderPrayerTimes()}
-        {prayerTimes()}
+        {/* {prayerTimes()} */}
 
         {renderQuickAccess()}
         {renderAppSections()}
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 18, color: '#FFFFFF', fontWeight: '400' },
   userName: { fontSize: 28, color: '#FFFFFF', fontWeight: 'bold', marginTop: 5 },
   date: { fontSize: 14, color: '#C8E6C9', marginTop: 5, fontWeight: '400' },
-  scrollView: { flex: 1, paddingHorizontal: 20 },
+  scrollView: { flex: 1, paddingHorizontal: 10 },
   sectionContainer: { marginTop: 20 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', marginBottom: 15, textAlign: 'center' },
 
