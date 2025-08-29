@@ -1,167 +1,153 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import * as Location from "expo-location";
 import { PrayerTimes, CalculationMethod, Madhab } from "adhan";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { LinearGradient } from 'expo-linear-gradient';
 
 dayjs.extend(duration);
 
-const toBanglaNumber = (numStr) => {
-  if (typeof numStr !== 'string') numStr = String(numStr);
-  const map = { "0":"০","1":"১","2":"২","3":"৩","4":"৪","5":"৫","6":"৬","7":"৭","8":"৮","9":"৯" };
-  return numStr.replace(/[0-9]/g, (m)=>map[m]);
-};
-
-const prayerInfo = {
-  ফজর: { color: "#10B981", icon: "weather-night" },
-  যোহর: { color: "#3B82F6", icon: "weather-sunny" },
-  আসর: { color: "#F59E0B", icon: "weather-partly-cloudy" },
-  মাগরিব: { color: "#EF4444", icon: "weather-sunset" },
-  এশা: { color: "#8B5CF6", icon: "moon-waning-crescent" },
-};
-
-const screenWidth = Dimensions.get("window").width;
-
-export default function PrayerPage() {
+const PrayerPage = () => {
   const [loading, setLoading] = useState(true);
-  const [city, setCity] = useState("লোকেশন লোড হচ্ছে...");
-  const [times, setTimes] = useState(null);
   const [prayerWindows, setPrayerWindows] = useState([]);
   const [currentWaqt, setCurrentWaqt] = useState(null);
-  const [waqtEndCountdown, setWaqtEndCountdown] = useState("");
+  const [nextWaqt, setNextWaqt] = useState(null);
+  const [countdown, setCountdown] = useState(null);
 
-  // Load Location & Prayer Times
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        alert("লোকেশন পারমিশন দরকার।");
-        setCity("লোকেশন পাওয়া যায়নি");
-        setLoading(false);
-        return;
-      }
+    const loadPrayerTimes = async () => {
       try {
-        const loc = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = loc.coords;
-        const place = await Location.reverseGeocodeAsync({ latitude, longitude });
-        if (place.length > 0) setCity(`${place[0].city}, ${place[0].country}`);
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLoading(false);
+          return;
+        }
 
-        const params = CalculationMethod.Karachi();
-        params.madhab = Madhab.Hanafi;
-        const today = new Date();
-        const tomorrow = new Date(); tomorrow.setDate(today.getDate()+1);
-
-        const prayerTimes = new PrayerTimes({latitude, longitude}, today, params);
-        const tomorrowPrayerTimes = new PrayerTimes({latitude, longitude}, tomorrow, params);
-
-        const formattedTimes = {
-          ফজর: dayjs(prayerTimes.fajr),
-          যোহর: dayjs(prayerTimes.dhuhr),
-          আসর: dayjs(prayerTimes.asr),
-          মাগরিব: dayjs(prayerTimes.maghrib),
-          এশা: dayjs(prayerTimes.isha),
-          Sunrise: dayjs(prayerTimes.sunrise),
-          Sunset: dayjs(prayerTimes.maghrib)
+        let location = await Location.getCurrentPositionAsync({});
+        const coordinates = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
         };
-        setTimes(formattedTimes);
+
+        const date = new Date();
+        const params = CalculationMethod.MuslimWorldLeague();
+        params.madhab = Madhab.Hanafi;
+
+        const prayerTimes = new PrayerTimes(coordinates, date, params);
 
         const windows = [
-          { name:"ফজর", start: formattedTimes.ফজর, end: formattedTimes.Sunrise },
-          { name:"যোহর", start: formattedTimes.যোহর, end: formattedTimes.আসর },
-          { name:"আসর", start: formattedTimes.আসর, end: formattedTimes.মাগরিব },
-          { name:"মাগরিব", start: formattedTimes.মাগরিব, end: formattedTimes.এশা },
-          { name:"এশা", start: formattedTimes.এশা, end: dayjs(tomorrowPrayerTimes.fajr) },
+          { name: "ফজর", start: dayjs(prayerTimes.fajr), end: dayjs(prayerTimes.sunrise) },
+          { name: "যোহর", start: dayjs(prayerTimes.dhuhr), end: dayjs(prayerTimes.asr) },
+          { name: "আসর", start: dayjs(prayerTimes.asr), end: dayjs(prayerTimes.maghrib) },
+          { name: "মাগরিব", start: dayjs(prayerTimes.maghrib), end: dayjs(prayerTimes.isha) },
+          { name: "এশা", start: dayjs(prayerTimes.isha), end: dayjs(prayerTimes.fajr).add(1, "day") },
         ];
+
         setPrayerWindows(windows);
         setLoading(false);
-      } catch(err) { console.error(err); setCity("তথ্য পাওয়া যায়নি"); setLoading(false); }
-    })();
+      } catch (error) {
+        console.error(error);
+        setLoading(false);
+      }
+    };
+
+    loadPrayerTimes();
   }, []);
 
-  // Timer
-  useEffect(()=>{
-    if(!times || prayerWindows.length===0) return;
-    const timer = setInterval(()=>{
+  // Timer update
+  useEffect(() => {
+    if (prayerWindows.length === 0) return;
+
+    const timer = setInterval(() => {
       const now = dayjs();
-      const activeWaqt = prayerWindows.find(p=> now.isAfter(p.start) && now.isBefore(p.end));
-      setCurrentWaqt(activeWaqt?activeWaqt.name:null);
+      let active = null;
+      let upcoming = null;
 
-      if(activeWaqt){
-        const diff = activeWaqt.end.diff(now);
-        const dur = dayjs.duration(diff);
-        setWaqtEndCountdown(`${toBanglaNumber(dur.hours())} ঘণ্টা ${toBanglaNumber(dur.minutes())} মিনিট বাকি`);
-      } else setWaqtEndCountdown("ওয়াক্ত শেষ");
-    },1000);
-    return ()=> clearInterval(timer);
-  }, [times, prayerWindows]);
+      for (let i = 0; i < prayerWindows.length; i++) {
+        const p = prayerWindows[i];
+        if (now.isAfter(p.start) && now.isBefore(p.end)) {
+          active = p;
+          upcoming = prayerWindows[(i + 1) % prayerWindows.length];
+          break;
+        }
+      }
 
-  if(loading) return(
-    <View style={styles.center}>
-      <ActivityIndicator size="large" color="#10B981"/>
-      <Text style={styles.loadingText}>{city}</Text>
-    </View>
-  );
+      setCurrentWaqt(active);
+      setNextWaqt(upcoming);
 
-  const rowGradients = [
-    ['#DCFCE7','#BBF7D0'], // ফজর
-    ['#DBEAFE','#BFDBFE'], // যোহর
-    ['#FEF3C7','#FDE68A'], // আসর
-    ['#FEE2E2','#FECACA'], // মাগরিব
-    ['#EDE9FE','#DDD6FE'], // এশা
-  ];
+      if (active) {
+        const diff = dayjs.duration(active.end.diff(now));
+        setCountdown(
+          `${String(diff.hours()).padStart(2, "0")}:${String(diff.minutes()).padStart(2, "0")}:${String(
+            diff.seconds()
+          ).padStart(2, "0")}`
+        );
+      } else {
+        setCountdown(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [prayerWindows]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={{ marginTop: 10 }}>লোড হচ্ছে...</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.sunInfo}>
-        <Icon name="map-marker" size={20} color="#10B981" />
-        <Text style={styles.locationName}>{city}</Text>
-      </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* ✅ Current Waqt */}
+      <Text style={styles.nextWaqtName}>
+        {currentWaqt ? `${currentWaqt.name} (এখন)` : "এখন কোনো নামাজ নেই"}
+      </Text>
 
-      <View style={styles.prayerTable}>
-        <View style={styles.prayerHeader}>
-          <Text style={styles.prayerHeaderText}>নামাজ</Text>
-          <Text style={styles.prayerHeaderText}>ওয়াক্ত</Text>
+      {/* ✅ Next Waqt */}
+      <Text style={styles.nextWaqtName}>
+        {nextWaqt ? `পরবর্তী: ${nextWaqt.name}` : "পরবর্তী নামাজ নেই"}
+      </Text>
+
+      {/* ✅ Countdown */}
+      <Text style={styles.countdownText}>
+        {countdown ? `শেষ হতে বাকি: ${countdown}` : "০০:০০:০০"}
+      </Text>
+
+      {/* ✅ Prayer List */}
+      {prayerWindows.map((p, i) => (
+        <View key={i} style={styles.prayerRow}>
+          <Text style={styles.prayerName}>
+            {p.name} {currentWaqt?.name === p.name ? "(এখন)" : ""}
+          </Text>
+          <Text style={styles.prayerTime}>
+            {p.start && p.end
+              ? `${p.start.format("hh:mm A")} - ${p.end.format("hh:mm A")}`
+              : "লোড হচ্ছে..."}
+          </Text>
         </View>
-
-        {prayerWindows.map((p,i)=>{
-          const isActive = currentWaqt===p.name;
-          return(
-            <LinearGradient
-              key={i}
-              colors={isActive ? ['#D1FAE5','#6EE7B7'] : rowGradients[i]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.prayerRow, {borderRadius: 12, marginVertical: 4, elevation:3, shadowColor:'#000', shadowOffset:{width:0,height:2}, shadowOpacity:0.1, shadowRadius:3}]}
-            >
-              <Text style={[styles.prayerName, isActive && {color: prayerInfo[p.name]?.color, fontWeight:'700'}]}>{p.name}</Text>
-              <View>
-                <Text style={[styles.prayerTime, isActive && {color: prayerInfo[p.name]?.color, fontWeight:'700'}]}>
-                  {toBanglaNumber(p.start.format("hh:mm"))} - {toBanglaNumber(p.end.format("hh:mm A"))}
-                </Text>
-                {isActive && <Text style={styles.waqtLabel}>{waqtEndCountdown}</Text>}
-              </View>
-            </LinearGradient>
-          );
-        })}
-      </View>
+      ))}
     </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container:{flex:1, backgroundColor:'#23ca69ff', paddingTop:20 },
-  center:{flex:1,justifyContent:'center',alignItems:'center'},
-  loadingText:{marginTop:10,fontSize:16,color:'#10B981'},
-  sunInfo:{flexDirection:'row',alignItems:'center',marginBottom:15,paddingHorizontal:20},
-  locationName:{fontSize:16,fontWeight:'bold',marginLeft:8,color:'#1F2937'},
-  prayerTable:{marginHorizontal:20, marginBottom:30},
-  prayerHeader:{flexDirection:'row', backgroundColor:'#E5E7EB', paddingVertical:12, borderTopLeftRadius:12, borderTopRightRadius:12},
-  prayerHeaderText:{flex:1,fontSize:16,fontWeight:'bold',textAlign:'center',color:'#111'},
-  prayerRow:{flexDirection:'row',justifyContent:'space-between',paddingVertical:16,paddingHorizontal:12},
-  prayerName:{flex:1,fontSize:16,fontWeight:'500',textAlign:'center',color:'#333'},
-  prayerTime:{flex:1,fontSize:16,fontWeight:'500',textAlign:'center',color:'#555'},
-  waqtLabel:{fontSize:14,fontWeight:'bold',color:'#10B981',marginTop:2,textAlign:'center'},
+  container: { flexGrow: 1, padding: 20, backgroundColor: "#fff" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  nextWaqtName: { fontSize: 18, fontWeight: "bold", marginVertical: 5, textAlign: "center" },
+  countdownText: { fontSize: 20, fontWeight: "bold", marginVertical: 10, textAlign: "center" },
+  prayerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
+    marginVertical: 5,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 10,
+  },
+  prayerName: { fontSize: 16, fontWeight: "500" },
+  prayerTime: { fontSize: 16 },
 });
+
+export default PrayerPage;

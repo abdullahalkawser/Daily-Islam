@@ -32,6 +32,7 @@ export default function RootLayout() {
                     <Stack.Screen name="arbi/index" options={{ headerShown: false }} />
                               <Stack.Screen name="sunnah/index" options={{ headerShown: false }} />
                                 <Stack.Screen name="ramadan/index" options={{ headerShown: false }} />
+                                <Stack.Screen name="amol/index" options={{ headerShown: false }} />
         <Stack.Screen name="tasbih/index" options={{ headerShown: false }} />
         <Stack.Screen name="zakat/index" options={{ headerShown: false }} />
         <Stack.Screen name="kitab/index" options={{ headerShown: false }} />

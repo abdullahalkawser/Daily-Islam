@@ -91,7 +91,7 @@ const IslamicAppHome = () => {
     <View style={styles.sectionContainer}>
       <View style={styles.quickAccessContainer}>
         <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/amol')}>
-          <LinearGradient colors={['#4CAF50', '#304b12ff']} style={styles.quickAccessCard}>
+          <LinearGradient colors={['#20c525ff', '#304b12ff']} style={styles.quickAccessCard}>
             <Text style={styles.quickAccessIcon}>🌙</Text>
             <Text style={styles.quickAccessTitle}>সকাল এবং সন্ধ্যার</Text>
             <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
@@ -172,7 +172,7 @@ const IslamicAppHome = () => {
   };
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#2E7D32" barStyle="light-content" />
+      <StatusBar backgroundColor="#42c819ff" barStyle="light-content" />
       <View style={styles.header}>
         <Text style={styles.greeting}>আসসালামু আলাইকুম</Text>
         <Text style={styles.userName}>{userName}</Text>
@@ -197,7 +197,7 @@ const IslamicAppHome = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   header: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#18c520ff',
     paddingTop: 50,
     paddingBottom: 25,
     paddingHorizontal: 20,
