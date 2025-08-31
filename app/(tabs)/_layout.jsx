@@ -1,5 +1,5 @@
 import { HapticTab } from '@/components/HapticTab';
-import { useColorScheme } from '@/hooks/useColorScheme';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Tabs } from 'expo-router';
@@ -9,7 +9,7 @@ import { Dimensions, Platform, StyleSheet } from 'react-native';
 const { width } = Dimensions.get('window');
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+
 
   return (
     <Tabs
