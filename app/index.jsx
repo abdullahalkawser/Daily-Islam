@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, Animated, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, Animated, TouchableOpacity, SafeAreaView, LogBox } from 'react-native';
 import { useRouter } from 'expo-router';
+import 'react-native-reanimated';
+
+// Reanimated warnings ignore
+LogBox.ignoreLogs(['ReactNativeReanimated:']);
 
 const SplashScreen = () => {
   const router = useRouter();
@@ -34,17 +38,14 @@ const SplashScreen = () => {
   // Quote animation every 3 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fade out and slide up
       Animated.parallel([
         Animated.timing(quoteFadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
         Animated.timing(quoteSlideAnim, { toValue: -10, duration: 500, useNativeDriver: true })
       ]).start();
 
-      // Update quote safely after fade-out
       setTimeout(() => {
         setCurrentQuote(prev => (prev + 1) % quotes.length);
         quoteSlideAnim.setValue(10);
-        // Fade in new quote
         Animated.parallel([
           Animated.timing(quoteFadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
           Animated.timing(quoteSlideAnim, { toValue: 0, duration: 500, useNativeDriver: true })
@@ -61,10 +62,8 @@ const SplashScreen = () => {
         source={{ uri: 'https://m.media-amazon.com/images/I/61m9TN9GTLL.jpg' }}
         style={styles.background}
       >
-        {/* Semi-transparent overlay */}
         <View style={styles.overlay} />
 
-        {/* Quotes at top */}
         <View style={styles.quoteContainer}>
           <Animated.Text
             style={[styles.quote, { opacity: quoteFadeAnim, transform: [{ translateY: quoteSlideAnim }] }]}
@@ -73,13 +72,11 @@ const SplashScreen = () => {
           </Animated.Text>
         </View>
 
-        {/* Logo + Tagline in center */}
         <Animated.View style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.logoIcon}>☪️</Text>
           <Text style={styles.tagline}>দৈনিক ইবাদতের সঙ্গী</Text>
         </Animated.View>
 
-        {/* Button at bottom */}
         <Animated.View style={[styles.buttonWrapper, { opacity: buttonFadeAnim }]}>
           <TouchableOpacity
             style={styles.getStartedButton}
