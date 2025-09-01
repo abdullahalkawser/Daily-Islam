@@ -1,259 +1,295 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  FlatList,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { PrayerTimes, CalculationMethod, Madhab } from "adhan";
 import dayjs from "dayjs";
 import durationPlugin from "dayjs/plugin/duration";
+import isBetween from 'dayjs/plugin/isBetween';
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeIn } from "react-native-reanimated";
 import "dayjs/locale/bn";
 
 dayjs.extend(durationPlugin);
+dayjs.extend(isBetween);
 dayjs.locale("bn");
+
+const screenWidth = Dimensions.get("window").width;
 
 const toBanglaNumber = (numStr) => {
   if (typeof numStr !== "string") numStr = String(numStr);
-  const map = { "0":"০","1":"১","2":"২","3":"৩","4":"৪","5":"৫","6":"৬","7":"৭","8":"৮","9":"৯" };
+  const map = { "0": "০", "1": "১", "2": "২", "3": "৩", "4": "৪", "5": "৫", "6": "৬", "7": "৭", "8": "৮", "9": "৯" };
   return numStr.replace(/[0-9]/g, (m) => map[m]);
 };
 
-// Dynamic forbidden times based on prayer times
-const getForbiddenTimes = (prayerTimes) => [
-  {
-    name: "ফজরের সূর্যোদয় নিষিদ্ধ",
-    start: dayjs(prayerTimes.sunrise).subtract(2, "minutes"),
-    end: dayjs(prayerTimes.sunrise).add(15, "minutes"),
-    icon: "weather-sunset-up",
-    color: "#EF4444"
-  },
-  {
-    name: "যোহরের আগ মুহূর্ত নিষিদ্ধ",
-    start: dayjs(prayerTimes.dhuhr).subtract(2, "minutes"),
-    end: dayjs(prayerTimes.dhuhr).add(5, "minutes"),
-    icon: "white-balance-sunny",
-    color: "#F59E0B"
-  },
-  {
-    name: "মাগরিবের সূর্যাস্ত নিষিদ্ধ",
-    start: dayjs(prayerTimes.maghrib).subtract(2, "minutes"),
-    end: dayjs(prayerTimes.maghrib).add(2, "minutes"),
-    icon: "weather-sunset-down",
-    color: "#E11D48"
-  },
-];
+// একটি Row কম্পোনেন্ট যা ওয়াক্ত এবং নিষিদ্ধ সময় উভয়ই রেন্ডার করবে
+const ScheduleRow = ({ item, isCurrent }) => {
+    const isForbidden = item.type === 'forbidden';
+
+    const animatedStyle = useAnimatedStyle(() => {
+        const backgroundColor = isCurrent ? (isForbidden ? 'rgba(211, 47, 47, 0.1)' : 'rgba(26, 179, 148, 0.1)') : '#fff';
+        const borderColor = isCurrent ? (isForbidden ? '#D32F2F' : '#10B981') : '#eee';
+        return {
+            backgroundColor: withTiming(backgroundColor),
+            borderColor: withTiming(borderColor),
+        };
+    });
+
+    const itemColor = isForbidden ? '#D32F2F' : (isCurrent ? item.color : '#4A4A4A');
+
+    return (
+        <Animated.View style={[styles.prayerItem, animatedStyle, { borderLeftWidth: isForbidden ? 5 : 1, borderWidth: isCurrent ? 1.5 : 1 }]}>
+            <Icon name={item.icon} size={28} color={itemColor} />
+            <View style={styles.prayerInfo}>
+                <Text style={[styles.prayerName, { color: itemColor }]}>
+                    {item.name} {isCurrent && "(চলমান)"}
+                </Text>
+            </View>
+            <View style={styles.timeDetails}>
+                <Text style={[styles.prayerTime, { color: itemColor }]}>
+                    শুরু: {toBanglaNumber(item.startTime.format("h:mm A"))}
+                </Text>
+                <Text style={[styles.prayerTime, {fontSize: 12, color: '#777'}, isCurrent && { color: itemColor }]}>
+                    শেষ: {toBanglaNumber(item.endTime.format("h:mm A"))}
+                </Text>
+            </View>
+        </Animated.View>
+    );
+};
+
 
 export default function PrayerTimesComponent() {
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("লোকেশন লোড হচ্ছে...");
-  const [times, setTimes] = useState([]);
+  const [schedule, setSchedule] = useState([]);
   const [currentWaqt, setCurrentWaqt] = useState(null);
-  const [nextWaqt, setNextWaqt] = useState(null);
   const [countdown, setCountdown] = useState("০০:০০:০০");
+  const [countdownText, setCountdownText] = useState("লোড হচ্ছে...");
   const [coords, setCoords] = useState(null);
-  const [forbiddenTimes, setForbiddenTimes] = useState([]);
-  const [forbiddenCountdowns, setForbiddenCountdowns] = useState({});
-  const [sunriseCountdown, setSunriseCountdown] = useState("০০:০০:০০");
-  const [sunsetCountdown, setSunsetCountdown] = useState("০০:০০:০০");
 
-  const animatedColor = useSharedValue(["#10B981","#059669"]);
+  const animatedColor = useSharedValue(["#10B981", "#059669"]);
   const dynamicColors = [
-    ["#10B981","#059669"],["#3B82F6","#2563EB"],["#F59E0B","#D97706"],["#E11D48","#BE123C"],["#9333EA","#7C3AED"],
+    ["#10B981", "#059669"], ["#3B82F6", "#2563EB"], ["#F59E0B", "#D97706"],
+    ["#E11D48", "#BE123C"], ["#9333EA", "#7C3AED"],
   ];
 
-  useEffect(()=>{
-    let index=0;
-    const colorTimer=setInterval(()=>{
-      index=(index+1)%dynamicColors.length;
-      animatedColor.value=withTiming(dynamicColors[index],{duration:2000});
-    },5000);
-    return ()=>clearInterval(colorTimer);
-  },[]);
+  useEffect(() => {
+    let index = 0;
+    const colorTimer = setInterval(() => {
+      index = (index + 1) % dynamicColors.length;
+      animatedColor.value = withTiming(dynamicColors[index], { duration: 2000 });
+    }, 5000);
+    return () => clearInterval(colorTimer);
+  }, []);
 
-  const animatedGradientStyle = useAnimatedStyle(()=>({colors:animatedColor.value}));
+  const animatedGradientStyle = useAnimatedStyle(() => ({
+    backgroundColor: animatedColor.value[0],
+  }));
 
-  useEffect(()=>{
-    (async()=>{
-      let {status}=await Location.requestForegroundPermissionsAsync();
-      if(status!=="granted"){setCity("লোকেশন পাওয়া যায়নি"); setLoading(false); return;}
-      try{
-        const loc=await Location.getCurrentPositionAsync({});
-        const {latitude,longitude}=loc.coords;
-        setCoords({latitude,longitude});
-
-        const place=await Location.reverseGeocodeAsync({latitude,longitude});
-        if(place.length>0) setCity(`${place[0].city}, ${place[0].country}`);
-
-        const params=CalculationMethod.Karachi();
-        params.madhab=Madhab.Hanafi;
-
-        const today=new Date();
-        const prayerTimes=new PrayerTimes({latitude,longitude},today,params);
-        const tomorrow=new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
-        const tomorrowPrayerTimes=new PrayerTimes({latitude,longitude},tomorrow,params);
-
-        // Normal prayer times
-        const formattedTimes = [
-          {name:"ফজর",startTime:dayjs(prayerTimes.fajr),endTime:dayjs(prayerTimes.sunrise),icon:"weather-sunset-up",color:"#0EA5E9"},
-          {name:"যোহর",startTime:dayjs(prayerTimes.dhuhr),endTime:dayjs(prayerTimes.asr),icon:"weather-sunny",color:"#F59E0B"},
-          {name:"আসর",startTime:dayjs(prayerTimes.asr),endTime:dayjs(prayerTimes.maghrib),icon:"weather-sunset-down",color:"#E11D48"},
-          {name:"মাগরিব",startTime:dayjs(prayerTimes.maghrib),endTime:dayjs(prayerTimes.isha),icon:"weather-night",color:"#FF4500"},
-          {name:"এশা",startTime:dayjs(prayerTimes.isha),endTime:dayjs(tomorrowPrayerTimes.fajr).subtract(2,"minutes"),icon:"moon-waxing-crescent",color:"#9333EA"},
-        ];
-        setTimes(formattedTimes);
-
-        // Forbidden times
-        setForbiddenTimes(getForbiddenTimes(prayerTimes));
-
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setCity("লোকেশন পাওয়া যায়নি");
         setLoading(false);
-      }catch(err){console.error(err); setCity("তথ্য পাওয়া যায়নি"); setLoading(false);}
+        return;
+      }
+      try {
+        const loc = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = loc.coords;
+        setCoords({ latitude, longitude });
+
+        const place = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (place.length > 0) setCity(`${place[0].city}, ${place[0].country}`);
+
+        const params = CalculationMethod.Karachi();
+        params.madhab = Madhab.Hanafi;
+        const today = new Date();
+        const prayerTimes = new PrayerTimes({ latitude, longitude }, today, params);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowPrayerTimes = new PrayerTimes({ latitude, longitude }, tomorrow, params);
+
+        const formattedTimes = [
+            { name: "ফজর", type: "prayer", startTime: dayjs(prayerTimes.fajr), endTime: dayjs(prayerTimes.sunrise), icon: "weather-sunset-up", color: "#0EA5E9" },
+            { name: "যোহর", type: "prayer", startTime: dayjs(prayerTimes.dhuhr), endTime: dayjs(prayerTimes.asr), icon: "weather-sunny", color: "#F59E0B" },
+            { name: "আসর", type: "prayer", startTime: dayjs(prayerTimes.asr), endTime: dayjs(prayerTimes.maghrib), icon: "weather-sunset-down", color: "#E11D48" },
+            { name: "মাগরিব", type: "prayer", startTime: dayjs(prayerTimes.maghrib), endTime: dayjs(prayerTimes.isha), icon: "weather-night", color: "#FF4500" },
+            { name: "এশা", type: "prayer", startTime: dayjs(prayerTimes.isha), endTime: dayjs(tomorrowPrayerTimes.fajr).subtract(10, "minutes"), icon: "moon-waxing-crescent", color: "#9333EA" },
+        ];
+
+        // ### নিষিদ্ধ সময় যোগ করার নতুন লজিক ###
+        const combinedSchedule = [];
+        formattedTimes.forEach((waqt, index) => {
+            combinedSchedule.push(waqt);
+            const nextWaqt = formattedTimes[index + 1];
+            if (nextWaqt) {
+                const forbiddenStartTime = waqt.endTime.add(2, 'minutes');
+                const forbiddenEndTime = nextWaqt.startTime.subtract(2, 'minutes');
+                // নিশ্চিত করুন যে নিষিদ্ধ সময়টি বৈধ
+                if (forbiddenEndTime.isAfter(forbiddenStartTime)) {
+                    combinedSchedule.push({
+                        name: "নিষিদ্ধ সময়",
+                        type: "forbidden",
+                        startTime: forbiddenStartTime,
+                        endTime: forbiddenEndTime,
+                        icon: 'timer-off-outline',
+                        color: '#D32F2F'
+                    });
+                }
+            }
+        });
+        
+        setSchedule(combinedSchedule);
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setCity("তথ্য পাওয়া যায়নি");
+        setLoading(false);
+      }
     })();
-  },[]);
+  }, []);
 
-  useEffect(()=>{
-    if(times.length===0 || !coords || forbiddenTimes.length===0) return;
-    const timer=setInterval(()=>{
-      const now=dayjs();
+  useEffect(() => {
+    if (schedule.length === 0 || !coords) return;
 
-      // Current prayer
-      let nextIndex=-1;
-      for(let i=0;i<times.length;i++){if(now.isBefore(times[i].startTime)){nextIndex=i;break;}}
-      let current,next;
-      if(nextIndex!==-1){next=times[nextIndex];current=times[nextIndex>0?nextIndex-1:times.length-1];}
-      else{const tomorrow=new Date(); tomorrow.setDate(now.date()+1); const params=CalculationMethod.Karachi(); params.madhab=Madhab.Hanafi; const tomorrowPrayerTimes=new PrayerTimes(coords,tomorrow,params); next={name:"ফজর",startTime:dayjs(tomorrowPrayerTimes.fajr),icon:"weather-sunset-up",color:"#0EA5E9"}; current=times[times.length-1];}
-      setCurrentWaqt(current);
-      setNextWaqt(next);
+    const timer = setInterval(() => {
+      const now = dayjs();
+      const currentSlot = schedule.find(slot => now.isBetween(slot.startTime, slot.endTime, null, '[]'));
+      
+      setCurrentWaqt(currentSlot);
 
-      // Countdown
-      const diff=next.startTime.diff(now);
-      const duration=dayjs.duration(diff);
-      setCountdown(`${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2,"০"))}:${toBanglaNumber(String(duration.minutes()).padStart(2,"০"))}:${toBanglaNumber(String(duration.seconds()).padStart(2,"০"))}`);
+      if (currentSlot) {
+        const diff = currentSlot.endTime.diff(now);
+        const duration = dayjs.duration(diff);
+        setCountdown(
+            `${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2, "০"))}:${toBanglaNumber(String(duration.minutes()).padStart(2, "০"))}:${toBanglaNumber(String(duration.seconds()).padStart(2, "০"))}`
+        );
+        const text = currentSlot.type === 'prayer' ? `${currentSlot.name} শেষ হতে বাকি` : "নিষিদ্ধ সময় শেষ হতে বাকি";
+        setCountdownText(text);
+      } else {
+        // যদি কোনো ওয়াক্ত বা নিষিদ্ধ সময় না চলে
+        const nextSlot = schedule.find(slot => now.isBefore(slot.startTime));
+        if (nextSlot) {
+            const diff = nextSlot.startTime.diff(now);
+            const duration = dayjs.duration(diff);
+            setCountdown(
+                 `${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2, "০"))}:${toBanglaNumber(String(duration.minutes()).padStart(2, "০"))}:${toBanglaNumber(String(duration.seconds()).padStart(2, "০"))}`
+            );
+            setCountdownText(`${nextSlot.name} শুরু হতে বাকি`);
+        } else {
+            setCountdown("০০:০০:০০");
+            setCountdownText("আজকের সময়সূচী শেষ");
+        }
+      }
 
-      // Forbidden countdowns
-      const newForbidden={};
-      forbiddenTimes.forEach(ft=>{
-        if(now.isAfter(ft.start) && now.isBefore(ft.end)){
-          const fDiff=ft.end.diff(now);
-          const fDur=dayjs.duration(fDiff);
-          newForbidden[ft.name]=`${toBanglaNumber(String(Math.floor(fDur.asHours())).padStart(2,"০"))}:${toBanglaNumber(String(fDur.minutes()).padStart(2,"০"))}:${toBanglaNumber(String(fDur.seconds()).padStart(2,"০"))}`;
-        }else{newForbidden[ft.name]=null;}
-      });
-      setForbiddenCountdowns(newForbidden);
+    }, 1000);
 
-      // Sunrise/Sunset countdown
-      const sunriseDiff=times[0]?.endTime.diff(now);
-      const sunsetDiff=times[2]?.endTime.diff(now);
-      if(sunriseDiff>0){const d=dayjs.duration(sunriseDiff); setSunriseCountdown(`${toBanglaNumber(String(Math.floor(d.asHours())).padStart(2,"০"))}:${toBanglaNumber(String(d.minutes()).padStart(2,"০"))}:${toBanglaNumber(String(d.seconds()).padStart(2,"০"))}`);}
-      if(sunsetDiff>0){const d=dayjs.duration(sunsetDiff); setSunsetCountdown(`${toBanglaNumber(String(Math.floor(d.asHours())).padStart(2,"০"))}:${toBanglaNumber(String(d.minutes()).padStart(2,"০"))}:${toBanglaNumber(String(d.seconds()).padStart(2,"০"))}`);}
+    return () => clearInterval(timer);
+  }, [schedule, coords]);
 
-    },1000);
-    return ()=>clearInterval(timer);
-  },[times,coords,forbiddenTimes]);
-
-  if(loading)
-    return(
+  if (loading) {
+    return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10B981"/>
-        <Text style={styles.loadingText}>{city}</Text>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={{marginTop: 10, color: '#333'}}>তথ্য লোড হচ্ছে...</Text>
       </View>
     );
+  }
+  
+  const prayerTimes = schedule.filter(s => s.type === 'prayer');
+  const sunriseTime = prayerTimes.find(t => t.name === 'ফজর')?.endTime;
+  const sunsetTime = prayerTimes.find(t => t.name === 'আসর')?.endTime;
 
-  const currentDay=dayjs().format("DD MMMM, YYYY");
-  const sunsetTime=times[2]?.endTime.format("h:mm A");
-  const sunriseTime=times[0]?.endTime.format("h:mm A");
-
-  return(
+  return (
     <ScrollView style={styles.container}>
-      {/* Date & Location */}
-      <View style={styles.infoSection}>
-        <View style={styles.infoItem}><Icon name="calendar-today" size={20} color="#333"/><Text style={styles.infoText}>{toBanglaNumber(currentDay)}</Text></View>
-        <View style={styles.infoItem}><Icon name="map-marker-outline" size={20} color="#333"/><Text style={styles.infoText}>{city}</Text></View>
-      </View>
-
-      {/* Gradient Card */}
-      <Animated.View style={[styles.cardContainer, animatedGradientStyle]}>
-        <LinearGradient colors={animatedColor.value} style={styles.card} start={{x:0,y:0}} end={{x:1,y:1}}>
-          <View style={styles.countdownBox}>
-            <Text style={styles.countdownText}>{countdown}</Text>
-            <Text style={styles.remainingText}>{nextWaqt?.name} শুরু হতে বাকি</Text>
-          </View>
-          <View style={styles.detailsRow}>
-            <View style={styles.detailItem}><Icon name="weather-sunset-up" size={20} color="#fff"/><Text style={styles.detailText}>সূর্যোদয়: {toBanglaNumber(sunriseTime)} ({sunriseCountdown})</Text></View>
-            <View style={styles.detailItem}><Icon name="weather-sunset-down" size={20} color="#fff"/><Text style={styles.detailText}>সূর্যাস্ত: {toBanglaNumber(sunsetTime)} ({sunsetCountdown})</Text></View>
-          </View>
-        </LinearGradient>
-      </Animated.View>
-
-      {/* Prayer Times List */}
-      <View style={styles.listContainer}>
-        <FlatList
-          data={times}
-          keyExtractor={(item,index)=>index.toString()}
-          renderItem={({item})=>(
-            <View style={[styles.prayerItem, item.name===currentWaqt?.name && styles.highlightedItem]}>
-              <Icon name={item.icon} size={24} color={item.name===currentWaqt?.name?item.color:"#4A4A4A"}/>
-              <Text style={[styles.prayerName, item.name===currentWaqt?.name && {color:item.color}]}>{item.name} {item.name===currentWaqt?.name && "(এখন)"}</Text>
-              <View style={styles.timeDetails}>
-                <Text style={[styles.prayerTime,item.name===currentWaqt?.name && {color:item.color}]}>শুরু: {toBanglaNumber(item.startTime.format("h:mm A"))}</Text>
-                <Text style={[styles.prayerTime,item.name===currentWaqt?.name && {color:item.color}]}>শেষ: {toBanglaNumber(item.endTime.format("h:mm A"))}</Text>
-              </View>
-            </View>
-          )}
-        />
-      </View>
-
-      {/* Forbidden Times List */}
-      <View style={styles.listContainer}>
-        <Text style={{fontSize:18,fontWeight:"bold",marginBottom:10}}>নিষিদ্ধ সময়সমূহ</Text>
-        <FlatList
-          data={forbiddenTimes}
-          keyExtractor={(item,index)=>"forbidden-"+index}
-          renderItem={({item})=>{
-            const isActive=forbiddenCountdowns[item.name]!==null;
-            return(
-              <View style={[styles.prayerItem,{borderLeftWidth:5,borderLeftColor:item.color,backgroundColor:isActive?"#FEE2E2":"#fff"}]}>
-                <Icon name={item.icon} size={24} color={item.color}/>
-                <Text style={[styles.prayerName,{color:item.color}]}>{item.name}</Text>
-                <View style={styles.timeDetails}>
-                  <Text style={[styles.prayerTime,{color:item.color}]}>শুরু: {toBanglaNumber(item.start.format("h:mm A"))}</Text>
-                  <Text style={[styles.prayerTime,{color:item.color}]}>শেষ: {toBanglaNumber(item.end.format("h:mm A"))}</Text>
-                  {isActive && <Text style={{color:"#B91C1C",fontWeight:"bold",marginTop:3}}>শেষ হতে: {forbiddenCountdowns[item.name]}</Text>}
+        <Animated.View entering={FadeIn.duration(800)}>
+            <View style={styles.header}>
+                <View style={styles.headerItem}>
+                    <Icon name="map-marker-outline" size={16} color="#555" />
+                    <Text style={styles.headerText}>{city}</Text>
                 </View>
-              </View>
-            );
-          }}
-        />
-      </View>
+            </View>
+
+            <Animated.View style={[styles.gradientCard, animatedGradientStyle]}>
+                <LinearGradient colors={animatedColor.value} style={styles.gradientCardContent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <Text style={styles.remainingText}>{countdownText}</Text>
+                    <Text style={styles.countdownText}>{countdown}</Text>
+                    <View style={styles.sunInfoContainer}>
+                        <View style={styles.sunInfoItem}>
+                            <Icon name="weather-sunset-up" size={20} color="#fff" />
+                            <Text style={styles.sunInfoText}>সূর্যোদয়: {sunriseTime ? toBanglaNumber(sunriseTime.format("h:mm A")) : '...'}</Text>
+                        </View>
+                        <View style={styles.sunInfoItem}>
+                            <Icon name="weather-sunset-down" size={20} color="#fff" />
+                            <Text style={styles.sunInfoText}>সূর্যাস্ত: {sunsetTime ? toBanglaNumber(sunsetTime.format("h:mm A")) : '...'}</Text>
+                        </View>
+                    </View>
+                </LinearGradient>
+            </Animated.View>
+            
+            <View style={styles.listContainer}>
+                <Text style={styles.cardTitle}>আজকের পূর্ণাঙ্গ সময়সূচী</Text>
+                {schedule.map((item, index) => (
+                    <ScheduleRow 
+                        key={index} 
+                        item={item} 
+                        isCurrent={item.startTime.isSame(currentWaqt?.startTime)} 
+                    />
+                ))}
+            </View>
+
+        </Animated.View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1,backgroundColor:"#f5f5f5"},
-  center:{flex:1,justifyContent:"center",alignItems:"center"},
-  loadingText:{marginTop:10,fontSize:16,color:"#10B981"},
-  infoSection:{flexDirection:"row",justifyContent:"space-around",alignItems:"center",marginHorizontal:15,marginTop:20,marginBottom:10,padding:15,backgroundColor:"#fff",borderRadius:15,shadowColor:"#000",shadowOffset:{width:0,height:2},shadowOpacity:0.1,shadowRadius:4,elevation:3},
-  infoItem:{flexDirection:"row",alignItems:"center"},
-  infoText:{fontSize:14,color:"#333",marginLeft:5},
-  cardContainer:{borderRadius:20,overflow:"hidden",marginHorizontal:15,marginTop:10,shadowColor:"#000",shadowOffset:{width:0,height:4},shadowOpacity:0.2,shadowRadius:5,elevation:8},
-  card:{padding:20,alignItems:"center"},
-  countdownBox:{alignItems:"center",marginBottom:20},
-  countdownText:{fontSize:40,fontWeight:"bold",color:"#fff"},
-  remainingText:{fontSize:20,fontWeight:"bold",color:"#fff"},
-  detailsRow:{flexDirection:"row",justifyContent:"space-around",width:"100%"},
-  detailItem:{flexDirection:"row",alignItems:"center"},
-  detailText:{fontSize:14,color:"#fff",marginLeft:5},
-  listContainer:{paddingHorizontal:15,marginTop:20},
-  prayerItem:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",padding:15,backgroundColor:"#fff",borderRadius:10,marginBottom:10,shadowColor:"#000",shadowOffset:{width:0,height:2},shadowOpacity:0.1,shadowRadius:4,elevation:3},
-  highlightedItem:{borderWidth:2,borderColor:"#10B981"},
-  prayerName:{fontSize:18,fontWeight:"600",flex:1,marginLeft:15},
-  prayerTime:{fontSize:14,fontWeight:"600",color:"#555"},
-  timeDetails:{alignItems:"flex-end"},
+  container: { flex: 1, backgroundColor: "#F7F8FA" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F7F8FA" },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  headerItem: { flexDirection: 'row', alignItems: 'center' },
+  headerText: { marginLeft: 8, fontSize: 14, color: '#333', fontWeight: '500' },
+  gradientCard: { 
+    borderRadius: 20, margin: 15, elevation: 8, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10,
+  },
+  gradientCardContent: { padding: 25, alignItems: "center", borderRadius: 20 },
+  countdownText: { 
+    fontSize: 48, fontWeight: "700", color: "#fff", letterSpacing: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: {width: -1, height: 1}, textShadowRadius: 10
+  },
+  remainingText: { 
+    fontSize: 18, fontWeight: "500", color: "#fff", marginBottom: 8, height: 24,
+  },
+  sunInfoContainer: {
+    flexDirection: 'row', justifyContent: 'space-between', width: '100%',
+    marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)'
+  },
+  sunInfoItem: { flexDirection: 'row', alignItems: 'center' },
+  sunInfoText: { fontSize: 14, color: '#fff', marginLeft: 8, fontWeight: '500' },
+  listContainer: {
+    backgroundColor: '#fff', borderRadius: 15, padding: 15, margin: 15,
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05,
+    shadowRadius: 10, borderWidth: 1, borderColor: '#eee',
+  },
+  cardTitle: {
+    fontSize: 18, fontWeight: "600", color: "#333", marginBottom: 15,
+  },
+  prayerItem: {
+    flexDirection: "row", alignItems: "center", backgroundColor: "#fff",
+    borderRadius: 12, padding: 15, marginBottom: 10,
+  },
+  prayerInfo: { flex: 1, marginLeft: 15 },
+  prayerName: { fontSize: 17, fontWeight: "600" },
+  timeDetails: { alignItems: "flex-end" },
+  prayerTime: { fontSize: 14, fontWeight: "500" },
 });
