@@ -97,7 +97,7 @@ const IslamicAppHome = () => {
             <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/dailyplan')}>
+        <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/namj')}>
           <LinearGradient colors={['#03A9F4', '#2196F3']} style={styles.quickAccessCard}>
             <Text style={styles.quickAccessIcon}>⏰</Text>
             <Text style={styles.quickAccessTitle}>আজকের দিনের</Text>
