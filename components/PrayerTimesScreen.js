@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { PrayerTimes, CalculationMethod, Madhab } from "adhan";
@@ -20,16 +20,16 @@ const toBanglaNumber = (numStr) => {
   return numStr.replace(/[0-9]/g, (m) => map[m]);
 };
 
-const PrayerTimeItem = ({ item, isEnded, isCurrent }) => {
+const PrayerTimeItem = ({ item, isEnded, isCurrent, onPress, isDone }) => {
   return (
-    <View style={[styles.prayerItem, isEnded && styles.endedItem, isCurrent && styles.currentItem]}>
-      <Text style={[styles.prayerItemName, (isEnded || isCurrent) && { color: isCurrent ? '#fff' : '#6B7280' }]}>
+    <TouchableOpacity style={[styles.prayerItem, isEnded && styles.endedItem, isCurrent && styles.currentItem, isDone && styles.doneItem]} onPress={onPress}>
+      <Text style={[styles.prayerItemName, (isEnded || isCurrent || isDone) && { color: isDone ? '#28a745' : (isCurrent ? '#fff' : '#6B7280') }]}>
         {item.name}
       </Text>
-      <Text style={[styles.prayerItemTime, (isEnded || isCurrent) && { color: isCurrent ? '#fff' : '#6B7280' }]}>
+      <Text style={[styles.prayerItemTime, (isEnded || isCurrent || isDone) && { color: isDone ? '#28a745' : (isCurrent ? '#fff' : '#6B7280') }]}>
         {toBanglaNumber(item.startTime.format("h:mm A"))} - {toBanglaNumber(item.endTime.format("h:mm A"))}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -42,6 +42,48 @@ const ForbiddenTimeItem = ({ item }) => (
   </View>
 );
 
+// ✅ Stepper Component
+const PrayerStepper = ({ donePrayers, onToggle }) => {
+  const steps = ["ফজর", "যোহর", "আসর", "মাগরিব", "এশা","তাহাজ্জুদ"];
+  return (
+    <View style={styles.stepperContainer}>
+      {steps.map((name, index) => {
+        const isDone = !!donePrayers[name];
+        const isPrevDone = index === 0 ? true : !!donePrayers[steps[index - 1]];
+        return (
+          <View key={name} style={styles.stepItem}>
+            <TouchableOpacity
+              style={[styles.stepCircle, isDone && styles.stepCircleDone]}
+              onPress={() => onToggle(name)}
+            >
+              {isDone ? <Icon name="check" size={18} color="#fff" /> : <Text style={styles.stepLabel}>{index + 1}</Text>}
+            </TouchableOpacity>
+            <Text style={styles.stepText}>{name}</Text>
+            {index < steps.length - 1 && (
+              <View style={[styles.stepLine, isDone && isPrevDone && styles.stepLineDone]} />
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+// ✅ Progress Counter Component
+const PrayerProgress = ({ donePrayers }) => {
+  const total = 6;
+  const completed = ["ফজর","যোহর","আসর","মাগরিব","এশা","তাহাজ্জুদ"].reduce((acc, k) => acc + (donePrayers[k] ? 1 : 0), 0);
+  const percentage = (completed / total) * 100;
+  return (
+    <View style={styles.progressContainer}>
+      <Text style={styles.progressText}>আজ তুমি {completed}/{total} নামাজ পড়েছো</Text>
+      <View style={styles.progressBar}>
+        <View style={[styles.progressFill, { width: `${percentage}%` }]} />
+      </View>
+    </View>
+  );
+};
+
 export default function PrayerTimesComponent() {
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("লোকেশন লোড হচ্ছে...");
@@ -53,13 +95,12 @@ export default function PrayerTimesComponent() {
   const [coords, setCoords] = useState(null);
   const [forbiddenTimes, setForbiddenTimes] = useState([]);
 
+  // ✅ Obligatory prayers default state
+  const [donePrayers, setDonePrayers] = useState({ ফজর: false, যোহর: false, আসর: false, মাগরিব: false, এশা: false, তাহাজ্জুদ: false });
+
   const animatedColor = useSharedValue(["#10B981", "#059669"]);
   const dynamicColors = [
-    ["#10B981", "#059669"],
-    ["#3B82F6", "#2563EB"],
-    ["#F59E0B", "#D97706"],
-    ["#E11D48", "#BE123C"],
-    ["#9333EA", "#7C3AED"],
+    ["#10B981", "#059669"], ["#3B82F6", "#2563EB"], ["#F59E0B", "#D97706"], ["#E11D48", "#BE123C"], ["#9333EA", "#7C3AED"]
   ];
 
   useEffect(() => {
@@ -71,9 +112,7 @@ export default function PrayerTimesComponent() {
     return () => clearInterval(colorTimer);
   }, []);
 
-  const animatedGradientStyle = useAnimatedStyle(() => ({
-    backgroundColor: animatedColor.value[0],
-  }));
+  const animatedGradientStyle = useAnimatedStyle(() => ({ backgroundColor: animatedColor.value[0] }));
 
   useEffect(() => {
     (async () => {
@@ -87,7 +126,6 @@ export default function PrayerTimesComponent() {
         const loc = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = loc.coords;
         setCoords({ latitude, longitude });
-
         const place = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (place.length > 0) setCity(`${place[0].city}, ${place[0].country}`);
 
@@ -96,8 +134,7 @@ export default function PrayerTimesComponent() {
 
         const today = new Date();
         const prayerTimes = new PrayerTimes({ latitude, longitude }, today, params);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowPrayerTimes = new PrayerTimes({ latitude, longitude }, tomorrow, params);
 
         const formattedTimes = [
@@ -108,10 +145,10 @@ export default function PrayerTimesComponent() {
           { name: "সূর্যাস্ত", startTime: dayjs(prayerTimes.maghrib), endTime: dayjs(prayerTimes.maghrib).add(15, "minutes"), icon: "weather-night" },
           { name: "মাগরিব", startTime: dayjs(prayerTimes.maghrib), endTime: dayjs(prayerTimes.isha), icon: "weather-night" },
           { name: "এশা", startTime: dayjs(prayerTimes.isha), endTime: dayjs(tomorrowPrayerTimes.fajr), icon: "moon-waxing-crescent" },
-          { name: "তাহাজ্জুদ", startTime: dayjs(prayerTimes.isha).add(1, "hour"), endTime: dayjs(tomorrowPrayerTimes.fajr).subtract(15, "minutes"), icon: "bed" },
+          { name: "তাহাজ্জুদ", startTime: dayjs(prayerTimes.isha).add(1, "hour"), endTime: dayjs(tomorrowPrayerTimes.fajr).subtract(2, "minutes"), icon: "bed" },
         ];
         setTimes(formattedTimes);
-        
+
         setForbiddenTimes([
           { name: "সূর্যোদয়", start: dayjs(prayerTimes.sunrise).subtract(5, "minutes"), end: dayjs(prayerTimes.sunrise).add(20, "minutes"), icon: "weather-sunset-up" },
           { name: "মধ্যাহ্ন", start: dayjs(prayerTimes.dhuhr).subtract(10, "minutes"), end: dayjs(prayerTimes.dhuhr), icon: "white-balance-sunny" },
@@ -129,7 +166,6 @@ export default function PrayerTimesComponent() {
 
   useEffect(() => {
     if (times.length === 0 || !coords) return;
-
     const timer = setInterval(() => {
       const now = dayjs();
       let foundCurrentWaqt = null;
@@ -137,29 +173,21 @@ export default function PrayerTimesComponent() {
       let foundEndedWaqt = null;
 
       const sortedTimes = [...times].sort((a, b) => a.startTime.isBefore(b.startTime) ? -1 : 1);
-
-      // Find the current and next prayer times
       let nextWaqtIndex = -1;
       let currentWaqtIndex = -1;
 
       for (let i = 0; i < sortedTimes.length; i++) {
         const item = sortedTimes[i];
         if (now.isAfter(item.startTime) && now.isBefore(item.endTime)) {
-          foundCurrentWaqt = item;
-          currentWaqtIndex = i;
-          break;
+          foundCurrentWaqt = item; currentWaqtIndex = i; break;
         }
       }
 
       if (foundCurrentWaqt) {
-        // If we found a current waqt, the next waqt is the next one in the sorted array,
-        // or the first one of the next day if we are at the last one.
         nextWaqtIndex = (currentWaqtIndex + 1) % sortedTimes.length;
         foundNextWaqt = sortedTimes[nextWaqtIndex];
         foundEndedWaqt = sortedTimes[(currentWaqtIndex - 1 + sortedTimes.length) % sortedTimes.length];
       } else {
-        // If no prayer time is currently active, we are between prayers.
-        // Find the first prayer time that has not passed yet.
         for (let i = 0; i < sortedTimes.length; i++) {
           if (now.isBefore(sortedTimes[i].startTime)) {
             foundNextWaqt = sortedTimes[i];
@@ -167,39 +195,26 @@ export default function PrayerTimesComponent() {
             break;
           }
         }
-        if (!foundNextWaqt) {
-          // If we are past the last prayer of the day, the next is Fajr of the next day.
-          foundNextWaqt = sortedTimes[0];
-          foundEndedWaqt = sortedTimes[sortedTimes.length - 1];
-        }
+        if (!foundNextWaqt) { foundNextWaqt = sortedTimes[0]; foundEndedWaqt = sortedTimes[sortedTimes.length - 1]; }
       }
 
-      setCurrentWaqt(foundCurrentWaqt);
-      setNextWaqt(foundNextWaqt);
-      setEndedWaqt(foundEndedWaqt);
+      setCurrentWaqt(foundCurrentWaqt); setNextWaqt(foundNextWaqt); setEndedWaqt(foundEndedWaqt);
 
       if (foundNextWaqt) {
         let diff = foundNextWaqt.startTime.diff(now);
-        if (diff < 0) {
-          // If the next prayer is on the next day, calculate the difference from now until tomorrow's prayer time
-          const nextDayPrayerTime = foundNextWaqt.startTime.add(1, 'day');
-          diff = nextDayPrayerTime.diff(now);
-        }
+        if (diff < 0) { diff = foundNextWaqt.startTime.add(1, 'day').diff(now); }
         if (diff > 0) {
           const duration = dayjs.duration(diff);
-          setCountdown(
-            `${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2, "০"))}:${toBanglaNumber(String(duration.minutes()).padStart(2, "০"))}:${toBanglaNumber(String(duration.seconds()).padStart(2, "০"))}`
-          );
-        } else {
-          setCountdown("নতুন ওয়াক্ত শুরু হয়েছে");
-        }
-      } else {
-        setCountdown("সময় পাওয়া যায়নি");
-      }
+          setCountdown(`${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2, "০"))}:${toBanglaNumber(String(duration.minutes()).padStart(2, "০"))}:${toBanglaNumber(String(duration.seconds()).padStart(2, "০"))}`);
+        } else { setCountdown("নতুন ওয়াক্ত শুরু হয়েছে"); }
+      } else { setCountdown("সময় পাওয়া যায়নি"); }
     }, 1000);
-
     return () => clearInterval(timer);
   }, [times, coords]);
+
+  const handlePrayerDone = (prayerName) => {
+    setDonePrayers(prev => ({ ...prev, [prayerName]: !prev[prayerName] }));
+  };
 
   if (loading) {
     return (
@@ -213,6 +228,8 @@ export default function PrayerTimesComponent() {
   const sunriseTime = times.find(t => t.name === 'ফজর')?.endTime;
   const sunsetTime = times.find(t => t.name === 'আসর')?.endTime;
 
+  const tahajjudTime = times.find(t => t.name === "তাহাজ্জুদ");
+
   return (
     <ScrollView style={styles.container}>
       <Animated.View entering={FadeIn.duration(800)}>
@@ -222,6 +239,8 @@ export default function PrayerTimesComponent() {
             <Text style={styles.headerText}>{city}</Text>
           </View>
         </View>
+                <PrayerStepper donePrayers={donePrayers} onToggle={handlePrayerDone} />
+        <PrayerProgress donePrayers={donePrayers} />
 
         <Animated.View style={[styles.gradientCard, animatedGradientStyle]}>
           <LinearGradient colors={animatedColor.value} style={styles.gradientCardContent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
@@ -242,31 +261,46 @@ export default function PrayerTimesComponent() {
           </LinearGradient>
         </Animated.View>
 
+
+
         <View style={styles.contentRow}>
           <View style={styles.prayerTimesSection}>
             <Text style={styles.cardTitle}>আজকের নামাজের সময়সূচী</Text>
             <View style={styles.prayerItemsContainer}>
-              {times
-                .filter(t => t.name !== 'সূর্যোদয়' && t.name !== 'সূর্যাস্ত')
-                .map((item, index) => (
-                  <PrayerTimeItem
-                    key={index}
-                    item={item}
-                    isEnded={endedWaqt?.name === item.name}
-                    isCurrent={currentWaqt?.name === item.name}
-                  />
-                ))}
+              {times.filter(t => !["সূর্যোদয়","সূর্যাস্ত","তাহাজ্জুদ"].includes(t.name)).map((item, index) => (
+                <PrayerTimeItem
+                  key={index}
+                  item={item}
+                  isEnded={endedWaqt?.name === item.name}
+                  isCurrent={currentWaqt?.name === item.name}
+                  onPress={() => handlePrayerDone(item.name)}
+                  isDone={!!donePrayers[item.name]}
+                />
+              ))}
+                 {/* ✅ Tahajjud Card */}
+        {tahajjudTime && (
+   
+      
+            <PrayerTimeItem
+              item={tahajjudTime}
+              isEnded={endedWaqt?.name === tahajjudTime.name}
+              isCurrent={currentWaqt?.name === tahajjudTime.name}
+              onPress={() => handlePrayerDone("তাহাজ্জুদ")}
+              isDone={!!donePrayers["তাহাজ্জুদ"]}
+            />
+   
+        )}
             </View>
           </View>
         </View>
+
+     
+
         <View style={styles.contentCard}>
           <Text style={styles.cardTitle}>নামাজের নিষিদ্ধ সময়</Text>
           <View style={styles.forbiddenItemsContainer}>
             {forbiddenTimes.map((item, index) => (
-              <ForbiddenTimeItem
-                key={index}
-                item={item}
-              />
+              <ForbiddenTimeItem key={index} item={item} />
             ))}
           </View>
         </View>
@@ -278,173 +312,41 @@ export default function PrayerTimesComponent() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7F8FA" },
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F7F8FA" },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee'
-  },
-  headerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500'
-  },
-  gradientCard: {
-    borderRadius: 20,
-    margin: 15,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-  },
-  gradientCardContent: {
-    padding: 25,
-    alignItems: "center",
-    borderRadius: 20,
-  },
-  countdownText: {
-    fontSize: 48,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10
-  },
-  remainingText: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#fff",
-    marginBottom: 8,
-    height: 24,
-  },
-  sunInfoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)'
-  },
-  sunInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sunInfoText: {
-    fontSize: 14,
-    color: '#fff',
-    marginLeft: 8,
-    fontWeight: '500'
-  },
-  contentRow: {
-    flexDirection: screenWidth > 600 ? 'row' : 'column',
-    marginHorizontal: 15,
-    marginTop: 10,
-    gap: 15,
-  },
-  contentCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 15
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
-  },
-  prayerTimesSection: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 7,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 15,
-  },
-  prayerItemsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  prayerItem: {
-    width: '30%',
-    backgroundColor: '#E6F0F2',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#A4D9E2',
-    marginBottom: 10,
-  },
-  endedItem: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#D1D5DB',
-  },
-  currentItem: {
-    backgroundColor: '#10B981',
-    borderColor: '#059669',
-  },
-  prayerItemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-  },
-  prayerItemTime: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1A6E60',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  forbiddenItemsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  forbiddenCard: {
-    width: '30%',
-    backgroundColor: '#FFE5E5',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FCA5A5'
-  },
-  forbiddenCardName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#DC2626',
-  },
-  forbiddenCardTime: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#DC2626',
-    marginTop: 5,
-    textAlign: 'center',
-  }
+  header: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  headerItem: { flexDirection: 'row', alignItems: 'center' },
+  headerText: { marginLeft: 8, fontSize: 14, color: '#333', fontWeight: '500' },
+  gradientCard: { borderRadius: 20, margin: 15, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 },
+  gradientCardContent: { padding: 25, alignItems: "center", borderRadius: 20 },
+  countdownText: { fontSize: 48, fontWeight: "700", color: "#fff", letterSpacing: 2, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10 },
+  remainingText: { fontSize: 18, fontWeight: "500", color: "#fff", marginBottom: 8, height: 24 },
+  sunInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+  sunInfoItem: { flexDirection: 'row', alignItems: 'center' },
+  sunInfoText: { fontSize: 14, color: '#fff', marginLeft: 8, fontWeight: '500' },
+  stepperContainer: { flexDirection: "row", alignItems: "center", justifyContent: "space-around", marginTop: 5, marginHorizontal: 10, marginBottom: 8 },
+  stepItem: { alignItems: "center", position: "relative" },
+  stepCircle: { width: 35, height: 35, borderRadius: 18, borderWidth: 2, borderColor: "#10B981", backgroundColor: "#fff", justifyContent: "center", alignItems: "center", zIndex: 1 },
+  stepCircleDone: { backgroundColor: "#10B981", borderColor: "#059669" },
+  stepLabel: { fontSize: 14, fontWeight: "600", color: "#10B981" },
+  stepText: { marginTop: 5, fontSize: 12, fontWeight: "500", color: "#333" },
+  stepLine: { position: "absolute", top: 17, left: "50%", width: 40, height: 2, backgroundColor: "#D1D5DB", zIndex: 0 },
+  stepLineDone: { backgroundColor: "#10B981" },
+  progressContainer: { marginHorizontal: 20, marginBottom: 12, marginTop: 2 },
+  progressText: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 8, textAlign: "center" },
+  progressBar: { height: 10, borderRadius: 5, backgroundColor: "#E5E7EB", overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 5, backgroundColor: "#10B981" },
+  contentRow: { flexDirection: screenWidth > 600 ? 'row' : 'column', marginHorizontal: 15, marginTop: 10, gap: 15 },
+  contentCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 1, borderColor: '#eee', marginBottom: 15 },
+  cardTitle: { fontSize: 18, fontWeight: "600", color: "#333", marginBottom: 15 },
+  prayerTimesSection: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 7, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 1, borderColor: '#eee', marginBottom: 15 },
+  prayerItemsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 },
+  prayerItem: { width: '30%', backgroundColor: '#E6F0F2', borderRadius: 12, padding: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#A4D9E2', marginBottom: 10 },
+  endedItem: { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB' },
+  currentItem: { backgroundColor: '#10B981', borderColor: '#059669' },
+  doneItem: { backgroundColor: '#d4edda', borderColor: '#c3e6cb' },
+  prayerItemName: { fontSize: 14, fontWeight: '500', color: '#333' },
+  prayerItemTime: { fontSize: 14, fontWeight: '700', color: '#1A6E60', marginTop: 5, textAlign: 'center' },
+  forbiddenItemsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  forbiddenCard: { width: '30%', backgroundColor: '#FFE5E5', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5' },
+  forbiddenCardName: { fontSize: 12, fontWeight: '500', color: '#DC2626' },
+  forbiddenCardTime: { fontSize: 10, fontWeight: '600', color: '#DC2626', marginTop: 5, textAlign: 'center' },
 });
