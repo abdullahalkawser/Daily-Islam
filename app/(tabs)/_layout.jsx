@@ -79,6 +79,19 @@ export default function TabLayout() {
             ),
           }}
         />
+           <Tabs.Screen
+          name="amolTracker"
+          options={{
+            title: 'দৈনিক পরিকল্পনা',
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons 
+                name="clipboard-list-outline" 
+                size={scaleSize(28)} 
+                color={color} 
+              />
+            ),
+          }}
+        />
         <Tabs.Screen
           name="aboutapp"
           options={{
