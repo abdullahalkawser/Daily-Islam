@@ -199,15 +199,22 @@ export default function PrayerTimesComponent() {
       }
 
       setCurrentWaqt(foundCurrentWaqt); setNextWaqt(foundNextWaqt); setEndedWaqt(foundEndedWaqt);
+if (foundCurrentWaqt) {
+  let diff = foundCurrentWaqt.endTime.diff(now);   // ✅ আগে ছিল nextWaqt.startTime
+  if (diff > 0) {
+    const duration = dayjs.duration(diff);
+    setCountdown(
+      `${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2, "০"))}:` +
+      `${toBanglaNumber(String(duration.minutes()).padStart(2, "০"))}:` +
+      `${toBanglaNumber(String(duration.seconds()).padStart(2, "০"))}`
+    );
+  } else {
+    setCountdown("নতুন ওয়াক্ত শুরু হয়েছে");
+  }
+} else {
+  setCountdown("সময় পাওয়া যায়নি");
+}
 
-      if (foundNextWaqt) {
-        let diff = foundNextWaqt.startTime.diff(now);
-        if (diff < 0) { diff = foundNextWaqt.startTime.add(1, 'day').diff(now); }
-        if (diff > 0) {
-          const duration = dayjs.duration(diff);
-          setCountdown(`${toBanglaNumber(String(Math.floor(duration.asHours())).padStart(2, "০"))}:${toBanglaNumber(String(duration.minutes()).padStart(2, "০"))}:${toBanglaNumber(String(duration.seconds()).padStart(2, "০"))}`);
-        } else { setCountdown("নতুন ওয়াক্ত শুরু হয়েছে"); }
-      } else { setCountdown("সময় পাওয়া যায়নি"); }
     }, 1000);
     return () => clearInterval(timer);
   }, [times, coords]);
