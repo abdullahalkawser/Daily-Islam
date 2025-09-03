@@ -66,10 +66,10 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="dailyplan"
+       <Tabs.Screen
+          name="amol"
           options={{
-            title: 'দৈনিক পরিকল্পনা',
+            title: 'দৈনিক amol',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons 
                 name="clipboard-list-outline" 
@@ -82,7 +82,7 @@ export default function TabLayout() {
            <Tabs.Screen
           name="amolTracker"
           options={{
-            title: 'দৈনিক পরিকল্পনা',
+            title: ' পরিকল্পনা',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons 
                 name="clipboard-list-outline" 

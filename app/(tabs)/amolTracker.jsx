@@ -1,129 +1,178 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
 
-const { width } = Dimensions.get('window');
+const screenWidth = Dimensions.get('window').width;
 
-const MonthlyTasksPage = () => {
-  const [currentMonth, setCurrentMonth] = useState(dayjs());
+const chartConfig = {
+  backgroundGradientFrom: '#1e272e',
+  backgroundGradientTo: '#1e272e',
+  decimalPlaces: 0,
+  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+  style: { borderRadius: 16 },
+  propsForDots: { r: '5', strokeWidth: '2', stroke: '#ffa726' },
+};
+
+const Dashboard = () => {
+  const today = dayjs().format('YYYY-MM-DD');
   const [tasks, setTasks] = useState([]);
 
-  const monthKey = currentMonth.format('YYYY-MM');
+  const loadTasks = async () => {
+    try {
+      const json = await AsyncStorage.getItem(today);
+      const savedTasks = json ? JSON.parse(json) : null;
+      setTasks(savedTasks || []);
+    } catch (e) {
+      console.log('Failed to load tasks', e);
+      setTasks([]);
+    }
+  };
 
-  // Load tasks for selected month
   useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const json = await AsyncStorage.getItem(monthKey);
-        if (json) setTasks(JSON.parse(json));
-        else setTasks([]);
-      } catch (e) {
-        console.log('Failed to load tasks', e);
-      }
-    };
     loadTasks();
-  }, [monthKey]);
+  }, [today]);
 
-  const completedPercentage = tasks.length
-    ? tasks.filter(t => t.completed).length / tasks.length
-    : 0;
+  // Completed vs Pending count বের করা
+  const completedCount = tasks.filter(t => t.completed).length;
+  const pendingCount = tasks.filter(t => !t.completed).length;
 
-  const changeMonth = months => {
-    setCurrentMonth(prev => prev.add(months, 'month'));
+  const pieData = [
+    {
+      name: 'Completed',
+      population: completedCount,
+      color: '#2ECC71',
+      legendFontColor: '#2ECC71',
+      legendFontSize: 14,
+    },
+    {
+      name: 'Pending',
+      population: pendingCount,
+      color: '#E74C3C',
+      legendFontColor: '#E74C3C',
+      legendFontSize: 14,
+    },
+  ];
+
+  const barData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [
+      {
+        data: [45, 70, 35, 50, 95, 80],
+        colors: [
+          () => '#00B894',
+          () => '#00CEC9',
+          () => '#0984E3',
+          () => '#6C5CE7',
+          () => '#E17055',
+          () => '#D63031',
+        ],
+      },
+    ],
+  };
+
+  const lineData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [
+      {
+        data: [6000, 5500, 7000, 6500, 8000, 6600],
+        color: (opacity = 1) => `rgba(255, 165, 0, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
   };
 
   return (
-    <LinearGradient colors={['#F7971E', '#FFD200']} style={styles.container}>
-      <Text style={styles.header}>মাসিক টাস্ক ({monthKey})</Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.header}>📊 Dashboard Overview</Text>
 
-      <View style={styles.navContainer}>
-        <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navButton}>
-          <Text style={styles.navText}>← আগের মাস</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => changeMonth(1)} style={styles.navButton}>
-          <Text style={styles.navText}>পরের মাস →</Text>
-        </TouchableOpacity>
+      <View style={styles.chartContainer}>
+        <Text style={styles.sectionTitle}>Bar Chart</Text>
+        <BarChart
+          data={barData}
+          width={screenWidth - 32}
+          height={220}
+          chartConfig={chartConfig}
+          verticalLabelRotation={30}
+          fromZero
+          showBarTops
+          withCustomBarColorFromData
+          flatColor
+          style={styles.chart}
+        />
       </View>
 
-      <ScrollView contentContainerStyle={styles.taskList}>
-        {tasks.length === 0 && (
-          <Text style={styles.noTaskText}>এই মাসে কোনো টাস্ক নেই।</Text>
-        )}
-        {tasks.map(task => (
-          <View
-            key={task.id}
-            style={[styles.taskItem, task.completed && styles.completedTask]}
-          >
-            <View>
-              <Text style={[styles.taskText, task.completed && styles.completedText]}>
-                {task.title}
-              </Text>
-              <Text style={[styles.taskDescription, task.completed && styles.completedText]}>
-                {task.description}
-              </Text>
-            </View>
-            {task.completed && <Text style={styles.checkMark}>✓</Text>}
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>
-          {Math.round(completedPercentage * 100)}% Completed
-        </Text>
-        <View style={styles.progressBarBackground}>
-          <View style={[styles.progressBarFill, { width: `${completedPercentage * 100}%` }]} />
-        </View>
+      <View style={styles.chartContainer}>
+        <Text style={styles.sectionTitle}>Line Chart</Text>
+        <LineChart
+          data={lineData}
+          width={screenWidth - 32}
+          height={220}
+          chartConfig={chartConfig}
+          bezier
+          style={styles.chart}
+        />
       </View>
-    </LinearGradient>
+
+      <View style={styles.chartContainer}>
+        <Text style={styles.sectionTitle}>📊 Task Distribution</Text>
+        <PieChart
+          data={pieData}
+          width={screenWidth - 32}
+          height={220}
+          chartConfig={{
+            backgroundColor: '#fff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
+            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          }}
+          accessor="population"
+          backgroundColor="transparent"
+          paddingLeft="15"
+          absolute
+          hasLegend={true}
+        />
+        
+      
+      </View>
+
+      
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 50 },
-  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#fff', marginBottom: 15 },
-  navContainer: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 15 },
-  navButton: { padding: 10, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 12 },
-  navText: { color: '#fff', fontWeight: 'bold' },
-  taskList: { paddingHorizontal: 20, paddingBottom: 20 },
-  taskItem: {
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: '#1e272e',
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 200,
   },
-  completedTask: { backgroundColor: 'rgba(0,128,0,0.3)' },
-  taskText: { fontSize: 16, color: '#333', fontWeight: 'bold' },
-  taskDescription: { fontSize: 14, color: '#555' },
-  completedText: { textDecorationLine: 'line-through', color: '#444' },
-  checkMark: { fontSize: 18, color: '#2E7D32', fontWeight: 'bold' },
-  noTaskText: { color: '#fff', textAlign: 'center', marginTop: 50, fontSize: 16 },
-  progressContainer: { marginHorizontal: 20, marginTop: 10 },
-  progressText: { color: '#fff', fontWeight: 'bold', marginBottom: 5 },
-  progressBarBackground: {
-    width: width - 40,
-    height: 15,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 15,
-    overflow: 'hidden',
+  header: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#00cec9',
+    marginBottom: 20,
+    textAlign: 'center',
   },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#2E7D32',
-    borderRadius: 15,
+  chartContainer: {
+    backgroundColor: '#2d3436',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    color: '#00cec9',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  chart: {
+    borderRadius: 16,
   },
 });
 
-export default MonthlyTasksPage;
+export default Dashboard;
