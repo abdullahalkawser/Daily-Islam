@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,24 +7,47 @@ import {
   ScrollView,
   StyleSheet,
   StatusBar,
-  Animated,
+  Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import dayjs from 'dayjs';
+
+const { width } = Dimensions.get('window');
 
 const DailyTasksPage = () => {
-  const [tasks, setTasks] = useState([
-    { id: 1, title: 'সকাল ধিকর', description: 'সকাল ৫ টার আগে', completed: false },
-    { id: 2, title: 'কোরআন পাঠ', description: 'দিনে ২০ পাতা', completed: false },
-    { id: 3, title: 'তসবীহ', description: 'Subhanallah 33 বার', completed: false },
-  ]);
-
+  const today = dayjs().format('YYYY-MM'); // Current month
+  const [tasks, setTasks] = useState([]);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  // Load tasks from AsyncStorage
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const json = await AsyncStorage.getItem(today);
+        if (json) setTasks(JSON.parse(json));
+      } catch (e) {
+        console.log('Failed to load tasks', e);
+      }
+    };
+    loadTasks();
+  }, []);
+
+  // Save tasks to AsyncStorage whenever they change
+  useEffect(() => {
+    const saveTasks = async () => {
+      try {
+        await AsyncStorage.setItem(today, JSON.stringify(tasks));
+      } catch (e) {
+        console.log('Failed to save tasks', e);
+      }
+    };
+    saveTasks();
+  }, [tasks]);
 
   const addTask = () => {
-    if (newTitle.trim() === '' || newDescription.trim() === '') return;
-
+    if (!newTitle.trim() || !newDescription.trim()) return;
     setTasks(prev => [
       ...prev,
       { id: prev.length + 1, title: newTitle, description: newDescription, completed: false },
@@ -33,11 +56,9 @@ const DailyTasksPage = () => {
     setNewDescription('');
   };
 
-  const toggleTask = taskId => {
+  const toggleTask = id => {
     setTasks(prev =>
-      prev.map(task =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
+      prev.map(task => (task.id === id ? { ...task, completed: !task.completed } : task))
     );
   };
 
@@ -45,30 +66,21 @@ const DailyTasksPage = () => {
     ? tasks.filter(t => t.completed).length / tasks.length
     : 0;
 
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: completedPercentage,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [completedPercentage]);
-
   return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor="#2E7D32" barStyle="light-content" />
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Daily Tasks</Text>
-      </View>
+    <LinearGradient colors={['#A8E063', '#56AB2F']} style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
+
+      <Text style={styles.header}>মাসিক টাস্ক ({today})</Text>
 
       <View style={styles.inputContainer}>
         <TextInput
-          style={[styles.input, { flex: 2 }]}
-          placeholder="টাস্ক শিরোনাম"
+          style={styles.input}
+          placeholder="নতুন টাস্ক"
           value={newTitle}
           onChangeText={setNewTitle}
         />
         <TextInput
-          style={[styles.input, { flex: 3 }]}
+          style={styles.input}
           placeholder="বিস্তারিত বিবরণ"
           value={newDescription}
           onChangeText={setNewDescription}
@@ -103,78 +115,72 @@ const DailyTasksPage = () => {
           {Math.round(completedPercentage * 100)}% Completed
         </Text>
         <View style={styles.progressBarBackground}>
-          <Animated.View
-            style={[
-              styles.progressBarFill,
-              { width: progressAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%']
-                }) },
-            ]}
-          />
+          <View style={[styles.progressBarFill, { width: `${completedPercentage * 100}%` }]} />
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, paddingTop: 50 },
   header: {
-    backgroundColor: '#2E7D32',
-    paddingTop: 50,
-    paddingBottom: 20,
-    alignItems: 'center',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#fff',
+    marginBottom: 20,
   },
-  headerText: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  inputContainer: { flexDirection: 'row', padding: 20, alignItems: 'center' },
+  inputContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
   input: {
+    flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 15,
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginRight: 10,
-    fontSize: 16,
   },
   addButton: {
     backgroundColor: '#2E7D32',
-    borderRadius: 12,
     padding: 12,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   taskList: { paddingHorizontal: 20, paddingBottom: 20 },
   taskItem: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 15,
     padding: 15,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 2,
   },
-  completedTask: { backgroundColor: '#C8E6C9' },
-  taskText: { fontSize: 16, color: '#333' },
-  taskDescription: { fontSize: 14, color: '#666' },
-  completedText: { textDecorationLine: 'line-through', color: '#555' },
-  checkMark: { fontSize: 16, color: '#2E7D32', fontWeight: 'bold' },
-  progressContainer: { paddingHorizontal: 20, paddingVertical: 10 },
-  progressText: { marginBottom: 5, fontSize: 14, fontWeight: 'bold', color: '#2E7D32' },
+  completedTask: { backgroundColor: 'rgba(0,128,0,0.3)' },
+  taskText: { fontSize: 16, color: '#333', fontWeight: 'bold' },
+  taskDescription: { fontSize: 14, color: '#555' },
+  completedText: { textDecorationLine: 'line-through', color: '#444' },
+  checkMark: { fontSize: 18, color: '#2E7D32', fontWeight: 'bold' },
+  progressContainer: { marginHorizontal: 20, marginTop: 10 },
+  progressText: { color: '#fff', fontWeight: 'bold', marginBottom: 5 },
   progressBarBackground: {
-    width: '100%',
-    height: 12,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 6,
+    width: width - 40,
+    height: 15,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 15,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#2E7D32',
-    borderRadius: 6,
+    borderRadius: 15,
   },
 });
 
