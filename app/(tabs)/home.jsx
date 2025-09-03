@@ -8,13 +8,15 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  SafeAreaView,
+  useWindowDimensions,
 } from 'react-native';
+import PrayerTimesComponent from "../../components/PrayerTimesScreen";
+import PrayerPage from "../../components/NamazTime";
 
-import PrayerTimesComponent  from "../../components/PrayerTimesScreen"
-import PrayerPage  from "../../components/NamazTime";
-
-const { width } = Dimensions.get('window');
+const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get('window');
+const scaleFont = (size) => size * (WINDOW_WIDTH / 375); // Base width for scaling
 
 // Dummy Data in Bangla
 const HADITHS = [
@@ -37,7 +39,6 @@ const APP_SECTIONS = [
   { id: 9, title: 'রমজান', icon: '🌙', color: '#FBC02D', route: '/ramadan' },
 ];
 
-// Sunnah Section
 const SUNNAHS = [
   { id: 1, title: 'মেসওয়াক', icon: '🌿', color: '#4CAF50' },
   { id: 2, title: 'ডান দিক থেকে শুরু', icon: '➡️', color: '#2196F3' },
@@ -52,7 +53,7 @@ const SUNNAHS = [
 
 const IslamicAppHome = () => {
   const router = useRouter();
-
+  const { width, height } = useWindowDimensions();
   const [currentHadithIndex, setCurrentHadithIndex] = useState(0);
   const [userName] = useState('আব্দুল্লাহ আল কাওসার');
 
@@ -69,15 +70,15 @@ const IslamicAppHome = () => {
 
   const renderHadithSlider = () => (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>আজকের হাদিস</Text>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFont(20) }]}>আজকের হাদিস</Text>
       <LinearGradient
         colors={['#4CAF50', '#2E7D32']}
-        style={styles.hadithCard}
+        style={[styles.hadithCard, { minHeight: height * 0.2 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Text style={styles.hadithText}>"{HADITHS[currentHadithIndex].text}"</Text>
-        <Text style={styles.hadithSource}>- {HADITHS[currentHadithIndex].source}</Text>
+        <Text style={[styles.hadithText, { fontSize: scaleFont(16) }]}>"{HADITHS[currentHadithIndex].text}"</Text>
+        <Text style={[styles.hadithSource, { fontSize: scaleFont(14) }]}>- {HADITHS[currentHadithIndex].source}</Text>
         <View style={styles.hadithIndicator}>
           {HADITHS.map((_, index) => (
             <View key={index} style={[styles.dot, index === currentHadithIndex && styles.activeDot]} />
@@ -89,19 +90,27 @@ const IslamicAppHome = () => {
 
   const renderQuickAccess = () => (
     <View style={styles.sectionContainer}>
-      <View style={styles.quickAccessContainer}>
-        <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/amol')}>
-          <LinearGradient colors={['#20c525ff', '#304b12ff']} style={styles.quickAccessCard}>
-            <Text style={styles.quickAccessIcon}>🌙</Text>
-            <Text style={styles.quickAccessTitle}>সকাল এবং সন্ধ্যার</Text>
-            <Text style={styles.quickAccessSubtitle}>সময় ও দোয়া</Text>
+      <View style={[styles.quickAccessContainer, { flexDirection: 'row', justifyContent: 'space-between' }]}>
+        <TouchableOpacity 
+          style={[styles.quickAccessCardWrapper, { width: '48%' }]} 
+          onPress={() => router.push('/amol')}
+          activeOpacity={0.7}
+        >
+          <LinearGradient colors={['#20c525ff', '#304b12ff']} style={[styles.quickAccessCard, { height: height * 0.15 }]}>
+            <Text style={[styles.quickAccessIcon, { fontSize: scaleFont(35) }]}>🌙</Text>
+            <Text style={[styles.quickAccessTitle, { fontSize: scaleFont(16) }]}>সকাল এবং সন্ধ্যার</Text>
+            <Text style={[styles.quickAccessSubtitle, { fontSize: scaleFont(12) }]}>সময় ও দোয়া</Text>
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickAccessCardWrapper} onPress={() => router.push('/namj')}>
-          <LinearGradient colors={['#03A9F4', '#2196F3']} style={styles.quickAccessCard}>
-            <Text style={styles.quickAccessIcon}>⏰</Text>
-            <Text style={styles.quickAccessTitle}>আজকের দিনের</Text>
-            <Text style={styles.quickAccessSubtitle}>আমল ও দোয়া</Text>
+        <TouchableOpacity 
+          style={[styles.quickAccessCardWrapper, { width: '48%' }]} 
+          onPress={() => router.push('/namj')}
+          activeOpacity={0.7}
+        >
+          <LinearGradient colors={['#03A9F4', '#2196F3']} style={[styles.quickAccessCard, { height: height * 0.15 }]}>
+            <Text style={[styles.quickAccessIcon, { fontSize: scaleFont(35) }]}>⏰</Text>
+            <Text style={[styles.quickAccessTitle, { fontSize: scaleFont(16) }]}>আজকের দিনের</Text>
+            <Text style={[styles.quickAccessSubtitle, { fontSize: scaleFont(12) }]}>আমল ও দোয়া</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -110,16 +119,20 @@ const IslamicAppHome = () => {
 
   const renderAppSections = () => (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>অন্যান্য</Text>
-      <View style={styles.sectionsGrid}>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFont(20) }]}>অন্যান্য</Text>
+      <View style={[styles.sectionsGrid, { justifyContent: width > 600 ? 'space-between' : 'space-around' }]}>
         {APP_SECTIONS.map(section => (
           <TouchableOpacity
             key={section.id}
-            style={[styles.sectionCard, { backgroundColor: section.color }]}
+            style={[styles.sectionCard, { 
+              width: width > 600 ? (width - 80) / 4 : (width - 60) / 3,
+              backgroundColor: section.color 
+            }]}
             onPress={() => handleSectionPress(section)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.sectionIcon}>{section.icon}</Text>
-            <Text style={styles.sectionText}>{section.title}</Text>
+            <Text style={[styles.sectionIcon, { fontSize: scaleFont(30) }]}>{section.icon}</Text>
+            <Text style={[styles.sectionText, { fontSize: scaleFont(12) }]}>{section.title}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -128,154 +141,232 @@ const IslamicAppHome = () => {
 
   const renderSunnahSection = () => (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>নবী (সাঃ) এর ৯টি সুন্নাহ 🌙</Text>
-      <View style={styles.sunnahGrid}>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFont(20) }]}>নবী (সাঃ) এর ৯টি সুন্নাহ 🌙</Text>
+      <View style={[styles.sunnahGrid, { justifyContent: width > 600 ? 'space-between' : 'space-around' }]}>
         {SUNNAHS.map(sunnah => (
           <TouchableOpacity
             key={sunnah.id}
-            style={[styles.sunnahCard, { backgroundColor: sunnah.color }]}
+            style={[styles.sunnahCard, { 
+              width: width > 600 ? (width - 80) / 4 : (width - 60) / 3,
+              backgroundColor: sunnah.color 
+            }]}
             onPress={() => alert(`${sunnah.title}`)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.sunnahIcon}>{sunnah.icon}</Text>
-            <Text style={styles.sunnahText}>{sunnah.title}</Text>
+            <Text style={[styles.sunnahIcon, { fontSize: scaleFont(30) }]}>{sunnah.icon}</Text>
+            <Text style={[styles.sunnahText, { fontSize: scaleFont(12) }]}>{sunnah.title}</Text>
           </TouchableOpacity>
         ))}
       </View>
     </View>
   );
 
-  const renderPrayerTimes = () => {
-    return (
-      <View style={styles.prayerContainer}>
+  const renderPrayerTimes = () => (
+    <View style={styles.prayerContainer}>
+      <PrayerTimesComponent
+        latitude={23.8103}
+        longitude={90.4125}
+        calculation="MuslimWorldLeague"
+        madhab="Shafi"
+        use12h={true}
+      />
+    </View>
+  );
 
-        <PrayerTimesComponent
-          latitude={23.8103}
-          longitude={90.4125}
-          calculation="MuslimWorldLeague"
-          madhab="Shafi"
-          use12h={true}
-        />
-      </View>
-    );
-  };
+  const prayerTimes = () => (
+    <View style={styles.prayerContainer}>
+      <Text style={[styles.sectionTitle, { fontSize: scaleFont(20) }]}>নামাজের সময় 🕌</Text>
+      <PrayerPage />
+    </View>
+  );
 
-  
-  const prayerTimes = () => {
-    return (
-      <View style={styles.prayerContainer}>
-        <Text style={styles.sectionTitle}>নামাজের সময় 🕌</Text>
-        <PrayerPage
-    
-        />
-      </View>
-    );
-  };
   return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor="#42c819ff" barStyle="light-content" />
-      <View style={styles.header}>
-        <Text style={styles.greeting}>আসসালামু আলাইকুম</Text>
-        <Text style={styles.userName}>{userName}</Text>
-        <Text style={styles.date}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#000000ff" barStyle="light-content" />
+      <View style={[styles.header, { paddingTop: height * 0.05 }]}>
+        <Text style={[styles.greeting, { fontSize: scaleFont(18) }]}>আসসালামু আলাইকুম</Text>
+        <Text style={[styles.userName, { fontSize: scaleFont(28) }]}>{userName}</Text>
+        <Text style={[styles.date, { fontSize: scaleFont(14) }]}>
           {new Date().toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </Text>
       </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: height * 0.1 }}
+      >
         {renderPrayerTimes()}
-        {/* {prayerTimes()} */}
-
         {renderQuickAccess()}
         {renderAppSections()}
         {renderSunnahSection()}
-                {renderHadithSlider()}
+        {renderHadithSlider()}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F5F5F5' 
+  },
   header: {
-    backgroundColor: '#18c520ff',
-    paddingTop: 50,
-    paddingBottom: 25,
-    paddingHorizontal: 20,
+    backgroundColor: '#1ac922ff',
+    paddingBottom: '5%',
+    paddingHorizontal: '5%',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    marginBottom: 10,
+    marginBottom: '3%',
   },
-  greeting: { fontSize: 18, color: '#FFFFFF', fontWeight: '400' },
-  userName: { fontSize: 28, color: '#FFFFFF', fontWeight: 'bold', marginTop: 5 },
-  date: { fontSize: 14, color: '#C8E6C9', marginTop: 5, fontWeight: '400' },
-  scrollView: { flex: 1, paddingHorizontal: 10 },
-  sectionContainer: { marginTop: 20 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', marginBottom: 15, textAlign: 'center' },
-
-  // Hadith Slider
+  greeting: { 
+    color: '#FFFFFF', 
+    fontWeight: '400',
+    marginBottom: '2%' 
+  },
+  userName: { 
+    color: '#FFFFFF', 
+    fontWeight: 'bold',
+    marginTop: '2%' 
+  },
+  date: { 
+    color: '#C8E6C9', 
+    marginTop: '2%', 
+    fontWeight: '400' 
+  },
+  scrollView: { 
+    flex: 1, 
+    paddingHorizontal: '3%' 
+  },
+  sectionContainer: { 
+    marginTop: '5%' 
+  },
+  sectionTitle: { 
+    fontWeight: 'bold', 
+    color: '#2E7D32', 
+    textAlign: 'center',
+    marginBottom: '4%' 
+  },
   hadithCard: {
     borderRadius: 15,
-    padding: 20,
+    padding: '5%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3
   },
-  hadithText: { fontSize: 16, lineHeight: 24, color: '#FFFFFF', fontStyle: 'italic', marginBottom: 15, textAlign: 'center' },
-  hadithSource: { fontSize: 14, color: '#E0E0E0', textAlign: 'center', marginBottom: 15 },
-  hadithIndicator: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E0E0E0', marginHorizontal: 3 },
-  activeDot: { backgroundColor: '#FFFFFF' },
-
-  // Quick Access
-  quickAccessContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
-  quickAccessCardWrapper: { width: '48%', borderRadius: 15, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },
-  quickAccessCard: { padding: 20, alignItems: 'center', justifyContent: 'center', height: 130 },
-  quickAccessIcon: { fontSize: 35, marginBottom: 8 },
-  quickAccessTitle: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'center', marginBottom: 4 },
-  quickAccessSubtitle: { fontSize: 12, color: '#FFFFFF', opacity: 0.8, textAlign: 'center' },
-
-  // App Sections Grid
-  sectionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  hadithText: { 
+    lineHeight: 24, 
+    color: '#FFFFFF', 
+    fontStyle: 'italic', 
+    marginBottom: '4%', 
+    textAlign: 'center' 
+  },
+  hadithSource: { 
+    color: '#E0E0E0', 
+    textAlign: 'center', 
+    marginBottom: '4%' 
+  },
+  hadithIndicator: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  dot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: '#E0E0E0', 
+    marginHorizontal: 3 
+  },
+  activeDot: { 
+    backgroundColor: '#FFFFFF' 
+  },
+  quickAccessContainer: { 
+    marginTop: '2%' 
+  },
+  quickAccessCardWrapper: { 
+    borderRadius: 15, 
+    overflow: 'hidden', 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.2, 
+    shadowRadius: 4, 
+    elevation: 5,
+    marginHorizontal: '1%', // Small gap between cards
+  },
+  quickAccessCard: { 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    paddingVertical: '5%',
+  },
+  quickAccessIcon: { 
+    marginBottom: '2%' 
+  },
+  quickAccessTitle: { 
+    fontWeight: 'bold', 
+    color: '#FFFFFF', 
+    textAlign: 'center', 
+    marginBottom: '2%' 
+  },
+  quickAccessSubtitle: { 
+    color: '#FFFFFF', 
+    opacity: 0.8, 
+    textAlign: 'center' 
+  },
+  sectionsGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap' 
+  },
   sectionCard: {
-    width: (width - 60) / 3,
     aspectRatio: 1,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15,
+    marginBottom: '4%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    padding: 8,
+    padding: '2%',
   },
-  sectionIcon: { fontSize: 30, marginBottom: 8 },
-  sectionText: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' },
-
-  // Sunnah Grid
-  sunnahGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  sectionIcon: { 
+    marginBottom: '2%' 
+  },
+  sectionText: { 
+    color: '#FFFFFF', 
+    fontWeight: 'bold', 
+    textAlign: 'center' 
+  },
+  sunnahGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap' 
+  },
   sunnahCard: {
-    width: (width - 60) / 3,
     aspectRatio: 1,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15,
+    marginBottom: '4%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    padding: 8,
+    padding: '2%',
   },
-  sunnahIcon: { fontSize: 30, marginBottom: 8 },
-  sunnahText: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center' },
-
-  // Prayer Times
-  prayerContainer: { marginTop:1, marginBottom: 1},
+  sunnahIcon: { 
+    marginBottom: '2%' 
+  },
+  sunnahText: { 
+    color: '#FFFFFF', 
+    fontWeight: 'bold', 
+    textAlign: 'center' 
+  },
+  prayerContainer: { 
+    marginVertical: '2%' 
+  },
 });
 
 export default IslamicAppHome;

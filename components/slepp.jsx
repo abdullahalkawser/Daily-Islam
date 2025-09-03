@@ -9,6 +9,7 @@ const sleepPracticesData = [
   {
     id: 'step1',
     title: 'ধাপ ১: অযু করা',
+    
     iconName: 'hand-water',
     data: [
       {

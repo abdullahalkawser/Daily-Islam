@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Progress from 'react-native-progress';
+import { StatusBar } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -63,6 +64,7 @@ export default function TasbihPage() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#30d83eff" />
       <Text style={styles.title}>দৈনিক তাসবিহ</Text>
       <FlatList
         data={tasbihList}

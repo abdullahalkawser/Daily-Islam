@@ -36,7 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
       </Stack>
 
-      <StatusBar/>
+    <StatusBar  />
     </>
   );
 }

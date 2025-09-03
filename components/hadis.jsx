@@ -22,6 +22,7 @@ export default function HadisScreen() {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const router = useRouter();
 
+
   useEffect(() => {
     animateList();
   }, [selectedCategory]);

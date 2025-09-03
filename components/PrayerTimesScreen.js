@@ -245,7 +245,7 @@ export default function PrayerTimesComponent() {
         <Animated.View style={[styles.gradientCard, animatedGradientStyle]}>
           <LinearGradient colors={animatedColor.value} style={styles.gradientCardContent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <Text style={styles.remainingText}>
-              {nextWaqt ? `পরবর্তী ওয়াক্ত (${nextWaqt.name}) শুরু হতে বাকি` : 'সময় পাওয়া যায়নি'}
+              {nextWaqt ? ` (${currentWaqt.name}) শেষ হতে বাকি` : 'সময় পাওয়া যায়নি'}
             </Text>
             <Text style={styles.countdownText}>{countdown}</Text>
             <View style={styles.sunInfoContainer}>
@@ -310,15 +310,16 @@ export default function PrayerTimesComponent() {
 }
 
 const styles = StyleSheet.create({
+  
   container: { flex: 1, backgroundColor: "#F7F8FA" },
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F7F8FA" },
   header: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
   headerItem: { flexDirection: 'row', alignItems: 'center' },
   headerText: { marginLeft: 8, fontSize: 14, color: '#333', fontWeight: '500' },
   gradientCard: { borderRadius: 20, margin: 15, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 },
-  gradientCardContent: { padding: 25, alignItems: "center", borderRadius: 20 },
+  gradientCardContent: { padding: 10, alignItems: "center", borderRadius: 20 },
   countdownText: { fontSize: 48, fontWeight: "700", color: "#fff", letterSpacing: 2, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10 },
-  remainingText: { fontSize: 18, fontWeight: "500", color: "#fff", marginBottom: 8, height: 24 },
+  remainingText: { fontSize: 30, fontWeight: "500", color: "#fff", marginBottom: 8,},
   sunInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
   sunInfoItem: { flexDirection: 'row', alignItems: 'center' },
   sunInfoText: { fontSize: 14, color: '#fff', marginLeft: 8, fontWeight: '500' },

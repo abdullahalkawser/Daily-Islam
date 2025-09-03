@@ -1,159 +1,244 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, Animated, TouchableOpacity, SafeAreaView, LogBox } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Animated,
+  TouchableOpacity,
+  SafeAreaView,
+  Dimensions,
+  LogBox,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import 'react-native-reanimated';
 
 // Reanimated warnings ignore
 LogBox.ignoreLogs(['ReactNativeReanimated:']);
 
-const SplashScreen = () => {
+const { width, height } = Dimensions.get('window');
+
+// --- Onboarding Data ---
+// This data drives the content of each onboarding slide.
+const onboardingSlides = [
+  {
+    key: '1',
+    icon: '🕌',
+    title: 'আপনার দ্বীনি 여정에 স্বাগতম',
+    description: 'আপনার দৈনন্দিন ইবাদতের জন্য একটি আধুনিক এবং সহজ সমাধান।',
+  },
+  {
+    key: '2',
+    icon: '🕋',
+    title: 'সঠিক নামাজের সময়',
+    description: 'আপনার অবস্থান অনুযায়ী নামাজের সঠিক সময়সূচী পান এবং জামাতের জন্য প্রস্তুত থাকুন।',
+  },
+  {
+    key: '3',
+    icon: '📖',
+    title: 'দৈনিক হাদিস ও দোয়া',
+    description: 'প্রতিদিন একটি নতুন হাদিস পড়ুন এবং আপনার জ্ঞান বৃদ্ধি করুন।',
+  },
+  {
+    key: '4',
+    icon: '✨',
+    title: 'যাত্রা শুরু করুন',
+    description: 'ইসলামের পথে আপনার পথচলা আরও সহজ ও সুন্দর করতে আমরা প্রস্তুত।',
+  },
+];
+
+// --- Onboarding Item Component ---
+// Renders a single slide with animation.
+const OnboardingItem = ({ item }) => {
+  return (
+    <View style={styles.slide}>
+      <View style={styles.iconContainer}>
+        <Text style={styles.icon}>{item.icon}</Text>
+      </View>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.description}>{item.description}</Text>
+    </View>
+  );
+};
+
+// --- Pagination Component ---
+// Renders the dots at the bottom to indicate the current slide.
+const Pagination = ({ data, scrollX }) => {
+  return (
+    <View style={styles.paginationContainer}>
+      {data.map((_, idx) => {
+        const inputRange = [(idx - 1) * width, idx * width, (idx + 1) * width];
+
+        const dotWidth = scrollX.interpolate({
+          inputRange,
+          outputRange: [12, 30, 12],
+          extrapolate: 'clamp',
+        });
+
+        const opacity = scrollX.interpolate({
+          inputRange,
+          outputRange: [0.3, 1, 0.3],
+          extrapolate: 'clamp',
+        });
+
+        return <Animated.View key={idx.toString()} style={[styles.dot, { width: dotWidth, opacity }]} />;
+      })}
+    </View>
+  );
+};
+
+// --- Main Onboarding Screen Component ---
+const OnboardingScreen = () => {
   const router = useRouter();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const quoteFadeAnim = useRef(new Animated.Value(1)).current;
-  const quoteSlideAnim = useRef(new Animated.Value(10)).current;
-  const buttonFadeAnim = useRef(new Animated.Value(0)).current;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const slidesRef = useRef(null);
 
-  const quotes = [
-    'আল্লাহ আপনার নামাজ, যাকাত এবং রোজাগুলি কবুল করুন।',
-    'হাদিস ১: নবী (সঃ) বলেছেন, “যে আল্লাহর প্রতি ভরসা রাখে, আল্লাহ তার জন্য যথেষ্ট।”',
-    'হাদিস ২: “সত্যবাদিতা নেককারদের কাছে নেকি বাড়ায়।”',
-    'হাদিস ৩: “যে ব্যক্তি অন্যকে ভালো দেখে, আল্লাহও তাকে ভালো দেখেন।”',
-    'হাদিস ৪: “জীবনের প্রতিটি নেক কাজের জন্য মানুষ পুরস্কৃত হবে।”'
-  ];
+  const viewableItemsChanged = useRef(({ viewableItems }) => {
+    if (viewableItems[0]) {
+      setCurrentIndex(viewableItems[0].index);
+    }
+  }).current;
 
-  const [currentQuote, setCurrentQuote] = useState(0);
+  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  // Splash animation (logo + button fade)
-  useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, friction: 5, useNativeDriver: true })
-      ]),
-      Animated.timing(buttonFadeAnim, { toValue: 1, duration: 800, useNativeDriver: true })
-    ]).start();
-  }, []);
-
-  // Quote animation every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      Animated.parallel([
-        Animated.timing(quoteFadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(quoteSlideAnim, { toValue: -10, duration: 500, useNativeDriver: true })
-      ]).start();
-
-      setTimeout(() => {
-        setCurrentQuote(prev => (prev + 1) % quotes.length);
-        quoteSlideAnim.setValue(10);
-        Animated.parallel([
-          Animated.timing(quoteFadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-          Animated.timing(quoteSlideAnim, { toValue: 0, duration: 500, useNativeDriver: true })
-        ]).start();
-      }, 500);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const scrollTo = () => {
+    if (currentIndex < onboardingSlides.length - 1) {
+      slidesRef.current.scrollToIndex({ index: currentIndex + 1 });
+    } else {
+      router.replace('/(tabs)/home');
+    }
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ImageBackground
-        source={{ uri: 'https://m.media-amazon.com/images/I/61m9TN9GTLL.jpg' }}
-        style={styles.background}
-      >
-        <View style={styles.overlay} />
-
-        <View style={styles.quoteContainer}>
-          <Animated.Text
-            style={[styles.quote, { opacity: quoteFadeAnim, transform: [{ translateY: quoteSlideAnim }] }]}
-          >
-            {quotes[currentQuote]}
-          </Animated.Text>
+    <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#24f724ff', '#12994aff']} style={styles.gradientBackground}>
+        <View style={{ flex: 3 }}>
+          <FlatList
+            data={onboardingSlides}
+            renderItem={({ item }) => <OnboardingItem item={item} />}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            bounces={false}
+            keyExtractor={(item) => item.key}
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+              useNativeDriver: false,
+            })}
+            onViewableItemsChanged={viewableItemsChanged}
+            viewabilityConfig={viewConfig}
+            scrollEventThrottle={32}
+            ref={slidesRef}
+          />
         </View>
 
-        <Animated.View style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-          <Text style={styles.logoIcon}>☪️</Text>
-          <Text style={styles.tagline}>দৈনিক ইবাদতের সঙ্গী</Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.buttonWrapper, { opacity: buttonFadeAnim }]}>
-          <TouchableOpacity
-            style={styles.getStartedButton}
-            onPress={() => router.replace('/(tabs)/home')}
-          >
-            <Text style={styles.buttonText}>শুরু করুন</Text>
+        <View style={styles.bottomContainer}>
+          <Pagination data={onboardingSlides} scrollX={scrollX} />
+          <TouchableOpacity style={styles.button} onPress={scrollTo}>
+             <LinearGradient colors={['#61c925ff', '#fbfffaff']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.buttonGradient}>
+                <Text style={styles.buttonText}>
+                  {currentIndex === onboardingSlides.length - 1 ? 'শুরু করুন' : 'পরবর্তী'}
+                </Text>
+             </LinearGradient>
           </TouchableOpacity>
-        </Animated.View>
-      </ImageBackground>
+        </View>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'space-between',
+    backgroundColor: '#12e42eff',
+  },
+  gradientBackground: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  quoteContainer: {
-    marginTop: 60,
+  slide: {
+    width: width,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  quote: {
-    fontSize: 20,
+  iconContainer: {
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.15)',
+    borderRadius: 75,
+    marginBottom: 40,
+    shadowColor: '#f80000ff',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  icon: {
+    fontSize: 70,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
-    lineHeight: 28,
-    textShadowColor: 'rgba(0,0,0,0.85)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    marginBottom: 15,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  logoContainer: {
+  description: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: '90%',
+  },
+  bottomContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoIcon: {
-    fontSize: 70,
-    marginBottom: 10,
-  },
-  tagline: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 5,
-  },
-  buttonWrapper: {
+    paddingBottom: 40,
     width: '100%',
-    alignItems: 'center',
-    marginBottom: 30,
   },
-  getStartedButton: {
-    backgroundColor: '#6a11cb',
-    paddingVertical: 15,
-    borderRadius: 30,
-    width: '80%',
+  paginationContainer: {
+    flexDirection: 'row',
+    height: 64,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
+  },
+  dot: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'white',
+    marginHorizontal: 8,
+  },
+  button: {
+    width: '80%',
+    height: 60,
+    borderRadius: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  buttonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 30,
   },
   buttonText: {
-    color: '#fff',
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
-    letterSpacing: 1,
   },
 });
 
-export default SplashScreen;
+export default OnboardingScreen;

@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, FlatList, StyleShe
 import { FontAwesome5, MaterialIcons, Entypo, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
+import { StatusBar } from 'react-native';
 const { width } = Dimensions.get('window');
 
 const ZakatApp = () => {
@@ -62,6 +63,7 @@ const ZakatApp = () => {
 
   return (
     <ScrollView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
       {/* Header */}
       <LinearGradient colors={['#4f46e5', '#6366f1']} style={styles.header}>
         <View style={styles.headerButtons}>
