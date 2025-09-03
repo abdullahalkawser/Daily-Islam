@@ -136,7 +136,7 @@ const OnboardingScreen = () => {
         <View style={styles.bottomContainer}>
           <Pagination data={onboardingSlides} scrollX={scrollX} />
           <TouchableOpacity style={styles.button} onPress={scrollTo}>
-             <LinearGradient colors={['#61c925ff', '#fbfffaff']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.buttonGradient}>
+             <LinearGradient colors={['#61c925ff', '#c4ddbeff']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.buttonGradient}>
                 <Text style={styles.buttonText}>
                   {currentIndex === onboardingSlides.length - 1 ? 'শুরু করুন' : 'পরবর্তী'}
                 </Text>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 0, 0, 0.15)',
     borderRadius: 75,
     marginBottom: 40,
-    shadowColor: '#f80000ff',
+    shadowColor: '#e20a0aff',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
