@@ -183,7 +183,7 @@ const IslamicAppHome = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#0dcd0dff" barStyle="light-content" />
-      <View style={[styles.header, { paddingTop: height * 0.05 }]}>
+      <View style={[styles.header, { paddingTop: height * 0.07 }]}>
         <Text style={[styles.greeting, { fontSize: scaleFont(18) }]}>আসসালামু আলাইকুম</Text>
         <Text style={[styles.userName, { fontSize: scaleFont(28) }]}>{userName}</Text>
         <Text style={[styles.date, { fontSize: scaleFont(14) }]}>
