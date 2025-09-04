@@ -3,17 +3,17 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  SafeAreaView,
   useWindowDimensions,
+  View,
 } from 'react-native';
-import PrayerTimesComponent from "../../components/PrayerTimesScreen";
 import PrayerPage from "../../components/NamazTime";
+import PrayerTimesComponent from "../../components/PrayerTimesScreen";
 
 const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get('window');
 const scaleFont = (size) => size * (WINDOW_WIDTH / 375); // Base width for scaling
@@ -182,7 +182,7 @@ const IslamicAppHome = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#000000ff" barStyle="light-content" />
+      <StatusBar backgroundColor="#0dcd0dff" barStyle="light-content" />
       <View style={[styles.header, { paddingTop: height * 0.05 }]}>
         <Text style={[styles.greeting, { fontSize: scaleFont(18) }]}>আসসালামু আলাইকুম</Text>
         <Text style={[styles.userName, { fontSize: scaleFont(28) }]}>{userName}</Text>
@@ -208,7 +208,8 @@ const IslamicAppHome = () => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#F5F5F5' 
+    backgroundColor: '#F5F5F5', 
+    marginBottom: '10%'
   },
   header: {
     backgroundColor: '#1ac922ff',
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   },
   scrollView: { 
     flex: 1, 
-    paddingHorizontal: '3%' 
+    paddingHorizontal: '2%' 
   },
   sectionContainer: { 
     marginTop: '5%' 

@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
+import { CalculationMethod, Madhab, PrayerTimes } from "adhan";
+import dayjs from "dayjs";
+import "dayjs/locale/bn";
+import durationPlugin from "dayjs/plugin/duration";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import { PrayerTimes, CalculationMethod, Madhab } from "adhan";
-import dayjs from "dayjs";
-import durationPlugin from "dayjs/plugin/duration";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeIn } from "react-native-reanimated";
-import "dayjs/locale/bn";
 
 dayjs.extend(durationPlugin);
 dayjs.locale("bn");
@@ -142,20 +142,23 @@ export default function PrayerTimesComponent() {
   const sunsetTime = times.find(t => t.name === 'আসর')?.endTime;
 
   // ✅ Reusable Prayer Item
-  const PrayerTimeItem = ({ item, isCurrent, isDone }) => (
-    <TouchableOpacity
-      style={[
-        styles.prayerItem,
-        isDone ? styles.doneItem : isCurrent ? styles.currentItem : null
-      ]}
-      onPress={() => handlePrayerDone(item.name)}
-    >
-      <Text style={[styles.prayerItemName, { color: isDone ? '#28a745' : isCurrent ? '#fff' : '#333' }]}>{item.name}</Text>
-      <Text style={[styles.prayerItemTime, { color: isDone ? '#28a745' : isCurrent ? '#fff' : '#1A6E60' }]}>
-        {toBanglaNumber(item.startTime.format("h:mm A"))} - {toBanglaNumber(item.endTime.format("h:mm A"))}
-      </Text>
-    </TouchableOpacity>
-  );
+
+const PrayerTimeItem = ({ item, isCurrent, isDone }) => (
+  <TouchableOpacity
+    style={[
+      styles.prayerItem,
+      isDone ? styles.doneItem : isCurrent ? styles.currentItemHighlight : null
+    ]}
+    onPress={() => handlePrayerDone(item.name)}
+  >
+    <Text style={[styles.prayerItemName, { color: isDone ? '#28a745' : isCurrent ? '#fff' : '#333' }]}>
+      {item.name}
+    </Text>
+    <Text style={[styles.prayerItemTime, { color: isDone ? '#28a745' : isCurrent ? '#fff' : '#1A6E60' }]}>
+      {toBanglaNumber(item.startTime.format("h:mm A"))} - {toBanglaNumber(item.endTime.format("h:mm A"))}
+    </Text>
+  </TouchableOpacity>
+);
 
   // ✅ Forbidden Time Item
   const ForbiddenTimeItem = ({ item }) => (
@@ -218,9 +221,10 @@ export default function PrayerTimesComponent() {
         <Animated.View style={[styles.gradientCard, animatedGradientStyle]}>
           <LinearGradient colors={animatedColor.value} style={styles.gradientCardContent}>
             <Text style={styles.remainingText}>
-              {currentWaqt ? ` (${currentWaqt.name}) শেষ হতে বাকি` : nextWaqt ? `পরবর্তী ওয়াক্ত (${nextWaqt.name}) শুরু হতে বাকি` : 'সময় পাওয়া যায়নি'}
+              {currentWaqt ? ` (${currentWaqt.name}) শেষ হতে বাকি` : nextWaqt ? ` (${nextWaqt.name}) ওয়াক্ত শুরু হতে ` : 'সময় পাওয়া যায়নি'}
             </Text>
-            <Text style={styles.countdownText}>{countdown}</Text>
+            <Text style={styles.countdownText}>{countdown}  </Text>
+            <Text style={styles.remainingText}> সেকেন্ড বাকি </Text>
             <View style={styles.sunInfoContainer}>
               <View style={styles.sunInfoItem}>
                 <Icon name="weather-sunset-up" size={20} color="#fff" />
@@ -264,8 +268,8 @@ const styles = StyleSheet.create({
   headerText: { marginLeft: 8, fontSize: 14, color: '#333', fontWeight: '500' },
   gradientCard: { borderRadius: 20, margin: 15, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 },
   gradientCardContent: { padding: 10, alignItems: "center", borderRadius: 20 },
-  countdownText: { fontSize: 48, fontWeight: "700", color: "#fff", letterSpacing: 2, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10 },
-  remainingText: { fontSize: 30, fontWeight: "500", color: "#fff", marginBottom: 8,},
+  countdownText: { fontSize: 40, fontWeight: "700", color: "#fff", letterSpacing: 2, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10 },
+  remainingText: { fontSize: 28, fontWeight: "500", color: "#fff", marginBottom: 8,},
   sunInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
   sunInfoItem: { flexDirection: 'row', alignItems: 'center' },
   sunInfoText: { fontSize: 14, color: '#fff', marginLeft: 8, fontWeight: '500' },
@@ -296,4 +300,8 @@ const styles = StyleSheet.create({
   forbiddenCard: { width: '30%', backgroundColor: '#FFE5E5', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5' },
   forbiddenCardName: { fontSize: 12, fontWeight: '500', color: '#DC2626' },
   forbiddenCardTime: { fontSize: 10, fontWeight: '600', color: '#DC2626', marginTop: 5, textAlign: 'center' },
+  currentItemHighlight: {
+  backgroundColor: '#10B981',  // হাইলাইট সবুজ
+  borderColor: '#059669',
+},
 });

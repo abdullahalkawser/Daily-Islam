@@ -13,6 +13,8 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
+
 
 // Reanimated warnings ignore
 LogBox.ignoreLogs(['ReactNativeReanimated:']);
@@ -144,6 +146,7 @@ const OnboardingScreen = () => {
           </TouchableOpacity>
         </View>
       </LinearGradient>
+      <Toast />
     </SafeAreaView>
   );
 };
