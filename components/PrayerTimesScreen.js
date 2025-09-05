@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   gradientCardContent: { padding: 10, alignItems: "center", borderRadius: 20 },
   countdownText: { fontSize: 40, fontWeight: "700", color: "#fff", letterSpacing: 2, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10 },
   remainingText: { fontSize: 28, fontWeight: "500", color: "#fff", marginBottom: 8,},
-  sunInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+  sunInfoContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
   sunInfoItem: { flexDirection: 'row', alignItems: 'center' },
   sunInfoText: { fontSize: 14, color: '#fff', marginLeft: 8, fontWeight: '500' },
   stepperContainer: { flexDirection: "row", alignItems: "center", justifyContent: "space-around", marginTop: 5, marginHorizontal: 10, marginBottom: 8 },
