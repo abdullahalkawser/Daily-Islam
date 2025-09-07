@@ -52,15 +52,16 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="amol"
-        options={getTabOptions('calendar-today', 'দৈনিক')}
+        options={getTabOptions('calendar-today', 'দৈনিক-আমল')}
       />
-      <Tabs.Screen
-        name="amolTracker"
-        options={getTabOptions('chart-line', 'আমোল')}
-      />
+
       <Tabs.Screen
         name="aboutapp"
         options={getTabOptions('information', 'অ্যাপ সম্পর্কে')}
+      />
+            <Tabs.Screen
+        name="new"
+        options={getTabOptions('home', 'হোম')}
       />
     </Tabs>
   );

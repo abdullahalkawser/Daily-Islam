@@ -8,8 +8,8 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
-  Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,8 +17,15 @@ import dayjs from 'dayjs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
 import { useFocusEffect } from '@react-navigation/native';
+import { PieChart } from 'react-native-chart-kit';
 
-const { width } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+const colors = [
+  '#2ECC71', '#3498DB', '#9B59B6', '#F39C12',
+  '#E74C3C', '#1ABC9C', '#E67E22', '#8E44AD',
+  '#16A085', '#D35400', '#C0392B', '#2980B9'
+];
 
 const DailyTasksPage = () => {
   const today = dayjs().format('YYYY-MM-DD');
@@ -42,65 +49,36 @@ const DailyTasksPage = () => {
     try {
       const json = await AsyncStorage.getItem(today);
       const savedTasks = json ? JSON.parse(json) : null;
-      if (savedTasks && savedTasks.length > 0) {
-        setTasks(savedTasks);
-      } else {
-        setTasks(defaultAmals);
-      }
+      setTasks(savedTasks && savedTasks.length > 0 ? savedTasks : defaultAmals);
     } catch (e) {
       console.log('Failed to load tasks', e);
       setTasks(defaultAmals);
     }
   };
 
-  useEffect(() => {
-    loadTasks();
-  }, [today]);
-
-  useFocusEffect(
-    useCallback(() => {
-      // Screen focus এ ডাটা লোড হবে
-      loadTasks();
-    }, [today])
-  );
+  useEffect(() => { loadTasks(); }, [today]);
+  useFocusEffect(useCallback(() => { loadTasks(); }, [today]));
 
   useEffect(() => {
     const saveTasks = async () => {
-      try {
-        await AsyncStorage.setItem(today, JSON.stringify(tasks));
-      } catch (e) {
-        console.log('Failed to save tasks', e);
-      }
+      try { await AsyncStorage.setItem(today, JSON.stringify(tasks)); }
+      catch (e) { console.log('Failed to save tasks', e); }
     };
     saveTasks();
   }, [tasks, today]);
 
-  const showToast = (message, type = 'success') => {
-    Toast.show({
-      type: type,
-      text1: message,
-      visibilityTime: 2000,
-      autoHide: true,
-      topOffset: 30,
-    });
-  };
+  const showToast = (message, type = 'success') => { Toast.show({ type, text1: message, visibilityTime: 2000, topOffset: 30 }); };
 
   const addTask = () => {
     if (!newTitle.trim() || !newDescription.trim()) {
       showToast('অনুগ্রহ করে টাস্কের শিরোনাম এবং বিবরণ উভয়ই দিন।', 'error');
       return;
     }
-    const newTask = {
-      id: Date.now(),
-      title: newTitle,
-      description: newDescription,
-      completed: false,
-    };
-    setTasks(prev => [...prev, newTask]);
+    setTasks(prev => [...prev, { id: Date.now(), title: newTitle, description: newDescription, completed: false }]);
     setNewTitle('');
     setNewDescription('');
     setShowInputFields(false);
-    showToast('নতুন আমল সফলভাবে যুক্ত হয়েছে।', 'success');
+    showToast('নতুন আমল সফলভাবে যুক্ত হয়েছে।');
   };
 
   const startEdit = (task) => {
@@ -116,17 +94,13 @@ const DailyTasksPage = () => {
       showToast('অনুগ্রহ করে টাস্কের শিরোনাম এবং বিবরণ উভয়ই দিন।', 'error');
       return;
     }
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === currentTask.id ? { ...task, title: newTitle, description: newDescription } : task
-      )
-    );
+    setTasks(prev => prev.map(t => t.id === currentTask.id ? { ...t, title: newTitle, description: newDescription } : t));
     setIsEditing(false);
     setCurrentTask(null);
     setNewTitle('');
     setNewDescription('');
     setShowInputFields(false);
-    showToast('আমল সফলভাবে হালনাগাদ করা হয়েছে।', 'success');
+    showToast('আমল সফলভাবে হালনাগাদ করা হয়েছে।');
   };
 
   const cancelEdit = () => {
@@ -139,39 +113,28 @@ const DailyTasksPage = () => {
 
   const toggleTask = id => {
     setTasks(prev => {
-      const updatedTasks = prev.map(task =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      );
+      const updatedTasks = prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
       const task = updatedTasks.find(t => t.id === id);
-      if (task.completed) {
-        showToast('আলহামদুলিল্লাহ! আমলটি সম্পন্ন হয়েছে।', 'success');
-      } else {
-        showToast('আমল সম্পন্ন করা হয়নি।', 'info');
-      }
+      showToast(task.completed ? 'আলহামদুলিল্লাহ! আমলটি সম্পন্ন হয়েছে।' : 'আমল সম্পন্ন করা হয়নি।', task.completed ? 'success' : 'info');
       return updatedTasks;
     });
   };
 
   const deleteTask = id => {
-    Alert.alert(
-      'আমল মুছুন',
-      'আপনি কি নিশ্চিত যে আপনি এই আমলটি মুছে ফেলতে চান?',
-      [
-        { text: 'বাতিল', style: 'cancel' },
-        {
-          text: 'মুছে ফেলুন',
-          onPress: () => {
-            setTasks(prev => prev.filter(task => task.id !== id));
-            showToast('আমল সফলভাবে মুছে ফেলা হয়েছে।', 'success');
-          },
-        },
-      ]
-    );
+    setTasks(prev => prev.filter(t => t.id !== id));
+    showToast('আমল সফলভাবে মুছে ফেলা হয়েছে।');
   };
 
-  const completedPercentage = tasks.length
-    ? tasks.filter(t => t.completed).length / tasks.length
-    : 0;
+  const completedTasks = tasks.filter(t => t.completed);
+  const pieData = completedTasks.length > 0
+    ? completedTasks.map((t, i) => ({
+        name: t.title,
+        population: 1,
+        color: colors[i % colors.length],
+        legendFontColor: '#333',
+        legendFontSize: 12,
+      }))
+    : [{ name: 'কোনো সম্পন্ন আমল নেই', population: 1, color: '#E0E0E0', legendFontColor: '#333', legendFontSize: 12 }];
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -179,130 +142,101 @@ const DailyTasksPage = () => {
     setRefreshing(false);
   };
 
+  const chartConfig = {
+    backgroundGradientFrom: '#fff',
+    backgroundGradientTo: '#fff',
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+    strokeWidth: 2,
+    useShadowColorFromDataset: false,
+  };
+
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <ScrollView contentContainerStyle={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <StatusBar barStyle="light-content" backgroundColor="#4a90e2" />
       <Toast />
 
-      {/* Header and Add/Edit Task Section */}
-      <LinearGradient
-        colors={['#4a90e2', '#7cb9e8']}
-        style={styles.headerSection}
-      >
-        <Text style={styles.header}>দৈনিক আমলনামা ({today})</Text>
+      {/* Header */}
+      <LinearGradient colors={['#4a90e2', '#7cb9e8']} style={styles.headerSection}>
+        <Text style={styles.header}>দৈনিক আমলনামা ({dayjs().format('DD-MM-YYYY')})</Text>
         {showInputFields ? (
           <View style={styles.inputContainer}>
             <View style={styles.textInputWrapper}>
               <Icon name="format-title" size={20} color="#666" style={styles.icon} />
-              <TextInput
-                style={styles.input}
-                placeholder="নতুন আমল যোগ করুন"
-                placeholderTextColor="#999"
-                value={newTitle}
-                onChangeText={setNewTitle}
-              />
+              <TextInput style={styles.input} placeholder="নতুন আমল যোগ করুন" placeholderTextColor="#999" value={newTitle} onChangeText={setNewTitle} />
             </View>
             <View style={styles.textInputWrapper}>
               <Icon name="note-text-outline" size={20} color="#666" style={styles.icon} />
-              <TextInput
-                style={styles.input}
-                placeholder="বিস্তারিত বিবরণ"
-                placeholderTextColor="#999"
-                value={newDescription}
-                onChangeText={setNewDescription}
-                multiline
-              />
+              <TextInput style={styles.input} placeholder="বিস্তারিত বিবরণ" placeholderTextColor="#999" value={newDescription} onChangeText={setNewDescription} multiline />
             </View>
             <View style={styles.buttonContainer}>
               {isEditing ? (
                 <>
-                  <TouchableOpacity style={styles.updateButton} onPress={saveEdit}>
-                    <Text style={styles.addButtonText}>হালনাগাদ করুন</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.cancelButton} onPress={cancelEdit}>
-                    <Text style={styles.addButtonText}>বাতিল</Text>
-                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.updateButton} onPress={saveEdit}><Text style={styles.addButtonText}>হালনাগাদ করুন</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.cancelButton} onPress={cancelEdit}><Text style={styles.addButtonText}>বাতিল</Text></TouchableOpacity>
                 </>
               ) : (
-                <TouchableOpacity style={styles.addButton} onPress={addTask}>
-                  <Text style={styles.addButtonText}>যোগ করুন</Text>
-                </TouchableOpacity>
+                <TouchableOpacity style={styles.addButton} onPress={addTask}><Text style={styles.addButtonText}>যোগ করুন</Text></TouchableOpacity>
               )}
             </View>
           </View>
         ) : (
-          <TouchableOpacity 
-            style={styles.showAddButton} 
-            onPress={() => setShowInputFields(true)}
-          >
-            <Icon name="plus-circle" size={24} color="#fff" style={styles.icon} />
+          <TouchableOpacity style={styles.showAddButton} onPress={() => setShowInputFields(true)}>
+            <Icon name="plus-circle" size={24} color="#fff" />
             <Text style={styles.showAddButtonText}>নতুন আমল যোগ করুন</Text>
           </TouchableOpacity>
         )}
       </LinearGradient>
 
-      {/* All Tasks Section */}
-      <View style={styles.tasksSection}>
+      {/* Tasks Section (Card with Circle and Text) */}
+      <View style={styles.tasksContainer}> {/* New container to hold all task cards */}
         <Text style={styles.sectionTitle}>সকল আমল সম্পন্ন করুন</Text>
-        <View style={styles.taskList}>
-          {tasks.length > 0 ? (
-            tasks.map(task => (
-              <LinearGradient
-                key={task.id}
-                colors={task.completed ? ['#d3f8d3', '#e6ffe6'] : ['#f0f0f0', '#f9f9f9']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.taskCard}
-              >
-                <TouchableOpacity
-                  style={styles.taskDetails}
-                  onPress={() => toggleTask(task.id)}
-                >
-                  <View style={styles.checkbox}>
-                    {task.completed && <Icon name="check" size={20} color="#4CAF50" />}
-                  </View>
-                  <View style={styles.textContainer}>
-                    <Text style={[styles.taskTitle, task.completed && styles.completedText]}>
-                      {task.title}
-                    </Text>
-                    <Text style={[styles.taskDescription, task.completed && styles.completedText]}>
-                      {task.description}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                <View style={styles.taskActions}>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => startEdit(task)}
-                  >
-                    <Icon name="pencil-outline" size={24} color="#333" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => deleteTask(task.id)}
-                  >
-                    <Icon name="delete-outline" size={24} color="#f44336" />
-                  </TouchableOpacity>
+        {tasks.length > 0 ? tasks.map((task, i) => (
+          <LinearGradient key={task.id} colors={task.completed ? ['#d4edda', '#c3e6cb'] : ['#e9e9e9', '#ffffff']} start={{x:0, y:0}} end={{x:1, y:1}} style={styles.taskCard}>
+            <TouchableOpacity style={styles.taskDetails} onPress={() => toggleTask(task.id)}>
+              <View style={[styles.taskStatusIndicator, { backgroundColor: task.completed ? '#28a745' : '#ccc' }]}>
+                {task.completed && <Icon name="check" size={20} color="#fff" />}
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={[styles.taskTitle, task.completed && styles.completedText]}>{task.title}</Text>
+                <Text style={[styles.taskDescription, task.completed && styles.completedText]}>{task.description}</Text>
+              </View>
+              <View style={styles.taskActions}>
+                <TouchableOpacity style={styles.editButton} onPress={() => startEdit(task)}><Icon name="pencil-outline" size={24} color="#555" /></TouchableOpacity>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteTask(task.id)}><Icon name="delete-outline" size={24} color="#dc3545" /></TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </LinearGradient>
+        )) : <Text style={styles.noTasksText}>আজকের জন্য কোনো আমল নেই। একটি নতুন আমল যোগ করুন।</Text>}
+      </View>
+
+      {/* Pie Chart Card (Separate Card) */}
+      <View style={styles.chartCard}>
+        <Text style={styles.chartTitle}>📊 সম্পন্ন হওয়া আমল</Text>
+        {pieData[0].name === 'কোনো সম্পন্ন আমল নেই' ? (
+          <Text style={styles.noChartText}>কোনো সম্পন্ন আমল নেই।</Text>
+        ) : (
+          <>
+            <PieChart
+              data={pieData}
+              width={screenWidth - 60}
+              height={220}
+              chartConfig={chartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="50"
+              hasLegend={false}
+            />
+            <View style={styles.legendContainer}>
+              {pieData.map((item, index) => (
+                <View key={index} style={styles.legendItem}>
+                  <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
+                  <Text style={styles.legendText}>{item.name}</Text>
                 </View>
-              </LinearGradient>
-            ))
-          ) : (
-            <Text style={styles.noTasksText}>আজকের জন্য কোনো আমল নেই। একটি নতুন আমল যোগ করুন।</Text>
-          )}
-        </View>
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            {Math.round(completedPercentage * 100)}% সম্পন্ন
-          </Text>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${completedPercentage * 100}%` }]} />
-          </View>
-        </View>
+              ))}
+            </View>
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -311,199 +245,74 @@ const DailyTasksPage = () => {
 export default DailyTasksPage;
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1, // Changed to flexGrow to allow content to grow
-    backgroundColor: '#eef2f5',
+  container: { flexGrow: 1, backgroundColor: '#f0f4f7', paddingBottom: 200},
+  headerSection: { paddingTop: screenHeight * 0.06, paddingHorizontal: screenWidth * 0.05, paddingBottom: 20, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, alignItems: 'center', marginBottom: 20 },
+  header: { fontSize: screenWidth * 0.07, fontWeight: 'bold', color: '#fff', marginBottom: screenHeight * 0.02 },
+  inputContainer: { width: '100%', alignItems: 'center' },
+  textInputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 25, paddingHorizontal: 15, marginBottom: 10, width: '100%' },
+  icon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: screenHeight * 0.015, fontSize: screenWidth * 0.04, color: '#333' },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 10 },
+  addButton: { flex: 1, backgroundColor: '#4CAF50', paddingVertical: screenHeight * 0.015, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginRight: 5 },
+  updateButton: { flex: 1, backgroundColor: '#FFC107', paddingVertical: screenHeight * 0.015, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginRight: 5 },
+  cancelButton: { flex: 1, backgroundColor: '#9e9e9e', paddingVertical: screenHeight * 0.015, borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
+  addButtonText: { color: '#fff', fontSize: screenWidth * 0.04, fontWeight: 'bold' },
+  showAddButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#4CAF50', paddingVertical: screenHeight * 0.015, paddingHorizontal: screenWidth * 0.05, borderRadius: 25, elevation: 5 },
+  showAddButtonText: { color: '#fff', fontSize: screenWidth * 0.04, fontWeight: 'bold', marginLeft: 10 },
+
+  tasksContainer: { // New container for task cards
+    paddingHorizontal: screenWidth * 0.05,
+    marginBottom: 20, // Space between task cards and chart card
   },
-  headerSection: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  inputContainer: {
-    width: '100%',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  textInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    width: '100%',
-    elevation: 2,
-  },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 10,
-  },
-  addButton: {
-    flex: 1,
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-  },
-  updateButton: {
-    flex: 1,
-    backgroundColor: '#ffc107',
-    paddingVertical: 12,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    marginRight: 10,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#9e9e9e',
-    paddingVertical: 12,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  showAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 25,
-    elevation: 5,
-  },
-  showAddButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  tasksSection: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  taskList: {
-    paddingBottom: 20,
-  },
+  sectionTitle: { fontSize: screenWidth * 0.055, fontWeight: 'bold', color: '#333', marginBottom: screenHeight * 0.02 },
   taskCard: {
     borderRadius: 15,
     marginBottom: 10,
     padding: 15,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     elevation: 3,
+    backgroundColor: '#FFFFFF', // White background for task cards
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
-  taskDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  checkbox: {
-    width: 25,
-    height: 25,
-    borderRadius: 12.5,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
+  taskDetails: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  taskStatusIndicator: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  taskTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  taskDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  completedText: {
-    textDecorationLine: 'line-through',
-    color: '#888',
-  },
-  taskActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  editButton: {
-    padding: 5,
     marginRight: 10,
+    flexShrink: 0,
   },
-  deleteButton: {
-    padding: 5,
-  },
-  noTasksText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    color: '#888',
-  },
-  progressContainer: {
-    marginTop: 10,
-    marginBottom: 20,
-    paddingHorizontal: 5,
-  },
-  progressText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 5,
-    textAlign: 'center',
-  },
-  progressBarBackground: {
-    width: '100%',
-    height: 12,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 10,
-  },
-});
+  textContainer: { flex: 1, flexWrap: 'wrap' },
+  taskTitle: { fontSize: screenWidth * 0.045, fontWeight: '600', color: '#333', marginBottom: 2 },
+  taskDescription: { fontSize: screenWidth * 0.035, color: '#666' },
+  completedText: { textDecorationLine: 'line-through', color: '#888' },
+  taskActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
+  editButton: { padding: 5, marginRight: 10 },
+  deleteButton: { padding: 5 },
+  noTasksText: { textAlign: 'center', marginTop: screenHeight * 0.05, fontSize: screenWidth * 0.04, color: '#888' },
 
+  chartCard: {
+    marginTop: screenHeight * 0.02,
+    marginHorizontal: screenWidth * 0.05,
+    padding: 20,
+    backgroundColor: '#E0F2F7', // Light blue background for chart card
+    borderRadius: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+  },
+  chartTitle: { fontSize: screenWidth * 0.045, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#333' },
+  noChartText: { color: '#666', textAlign: 'center' },
+  legendContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 15 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, marginRight: 15 },
+  legendColorBox: { width: 15, height: 15, borderRadius: 4, marginRight: 8 },
+  legendText: { fontSize: screenWidth * 0.035, color: '#333' },
+});
