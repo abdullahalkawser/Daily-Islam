@@ -53,7 +53,7 @@ const APP_DETAILS = {
 const DEVELOPER_DETAILS = {
   logo: 'https://scontent.fjsr6-1.fna.fbcdn.net/v/t39.30808-6/489085217_1225632368983132_9073890756416247574_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeEp2EjF5dKG6maYNVO3zPq8_QmJvGbojLn9CYm8ZuiMuVPdNWJoVaZmN0H-BcjyM-f2wgIxKfnYtQc00DxgLKhn&_nc_ohc=4F1nY-uA16AQ7kNvwGFSFbc&_nc_oc=AdlnhcRdKV7NbZ40A5YcYei57JHPmX29RV94D1xT_7zwQCSB4q0yFyQXWwwUUEFKd0Y&_nc_zt=23&_nc_ht=scontent.fjsr6-1.fna&_nc_gid=QSha_HPTVL4DVpLycphY6g&oh=00_AfX50xQQDwRf3PaKNuVVRHi5T_HcauKQkPdKwMIkRwP9uw&oe=68B7D961',
   name: 'Abdullah AL Kawser',
-  subtitle: '🚀 Software Engineer | 🤖 Machine Learning | Artificial Intelligence (AI) AI agent Deep Learning Computer Vision',
+  subtitle: '🚀 Software Engineer | 🤖 Machine Learning | Artificial Intelligence | AI Agent| Deep Learning | Computer Vision',
   contactEmail: 'contact@bytelabs.com',
   website: 'https://bytelabs1.netlify.app/',
 };
@@ -160,7 +160,7 @@ export default function AboutApp() {
 const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,
-     marginTop: 30,
+     marginTop: 40,
   },
   container: {
     flexGrow: 1,
