@@ -16,13 +16,11 @@ import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 
 
-// Reanimated warnings ignore
+
 LogBox.ignoreLogs(['ReactNativeReanimated:']);
 
 const { width, height } = Dimensions.get('window');
 
-// --- Onboarding Data ---
-// This data drives the content of each onboarding slide.
 const onboardingSlides = [
   {
     key: '1',
@@ -214,7 +212,7 @@ const OnboardingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#12e42eff',
+    backgroundColor: '#18c52fff',
   },
   gradientBackground: {
     flex: 1,
