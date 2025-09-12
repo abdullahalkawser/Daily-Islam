@@ -160,7 +160,7 @@ export default function AboutApp() {
 const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,
-     marginTop: 40,
+     marginTop: 50,
   },
   container: {
     flexGrow: 1,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderLeftWidth: 4,
-    borderLeftColor: '#33ff00ff',
+    borderLeftColor: '#2cc706ff',
     width: '100%',
     backgroundColor: '#ffffff',
     borderRadius: 20,
