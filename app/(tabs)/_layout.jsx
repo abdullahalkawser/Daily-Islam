@@ -46,23 +46,10 @@ export default function TabLayout() {
 
   return (
     <Tabs>
-      <Tabs.Screen
-        name="home"
-        options={getTabOptions('home', 'হোম')}
-      />
-      <Tabs.Screen
-        name="amol"
-        options={getTabOptions('calendar-today', 'দৈনিক-আমল')}
-      />
+      <Tabs.Screen name="home" options={getTabOptions('home', 'হোম')} />
+      <Tabs.Screen name="amol" options={getTabOptions('calendar-today', 'দৈনিক-আমল')} />
+      <Tabs.Screen name="aboutapp" options={getTabOptions('information', 'অ্যাপ সম্পর্কে')} />
 
-      <Tabs.Screen
-        name="aboutapp"
-        options={getTabOptions('information', 'অ্যাপ সম্পর্কে')}
-      />
-            <Tabs.Screen
-        name="new"
-        options={getTabOptions('home', 'হোম')}
-      />
     </Tabs>
   );
 }
